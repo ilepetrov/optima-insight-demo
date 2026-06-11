@@ -1,0 +1,143 @@
+<!DOCTYPE html><html lang="it"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Optima Insight — PR Guardian</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+<style>
+:root{--navy:#13202F;--or:#E8650D;--mut:#5A6B7A;--lt:#F4F6F8;--bd:#E3E8EC;--ok:#1E7A4F;--warn:#A33232;--giallo:#B8860B}
+*{box-sizing:border-box;margin:0}body{font:14px/1.45 'Segoe UI',Calibri,sans-serif;background:var(--lt);color:var(--navy)}
+header{background:var(--navy);color:#fff;padding:14px 28px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.logo{font-weight:800;font-size:19px}.logo span{color:var(--or)}
+.badge{background:var(--or);color:#fff;font-size:11px;font-weight:700;padding:4px 10px;border-radius:20px}
+.sito{margin-left:auto;font-size:12.5px;color:#C3CEDA}
+main{max-width:1240px;margin:22px auto;padding:0 20px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px;margin-bottom:16px}
+.kpi{background:#fff;border:1px solid var(--bd);border-radius:10px;padding:14px 16px;box-shadow:0 2px 6px rgba(0,0,0,.05);cursor:pointer;transition:.12s}
+.kpi:hover{outline:2px solid var(--or)}
+.kpi .v{font-size:25px;font-weight:800;color:var(--or)}.kpi .v.n{color:var(--navy)}.kpi .v.g{color:var(--ok)}
+.kpi .l{font-size:11.5px;color:var(--mut);margin-top:3px}
+.grid{display:grid;grid-template-columns:1.6fr 1fr;gap:14px;margin-bottom:16px}
+.card{background:#fff;border:1px solid var(--bd);border-radius:10px;padding:16px;box-shadow:0 2px 6px rgba(0,0,0,.05)}
+.card h2{font-size:14px;margin-bottom:10px;color:var(--navy)}.card h2 small{color:var(--mut);font-weight:400}
+canvas{max-height:280px}
+.mesi{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap}
+.mese{flex:1;min-width:200px;background:var(--navy);color:#fff;border-radius:10px;padding:14px 16px}
+.mese b{font-size:20px}.mese .e{float:right;font-size:10.5px;font-weight:700;padding:2px 9px;border-radius:12px;background:var(--ok)}
+.vbox{background:var(--navy);color:#fff;border-radius:12px;padding:18px 22px;margin-bottom:16px;display:flex;gap:26px;flex-wrap:wrap;align-items:center}
+.vbox .big{font-size:30px;font-weight:800;color:#7CD9A5}
+.vbox .lbl{font-size:11px;color:#C3CEDA;max-width:190px}
+.fmap{display:grid;grid-template-columns:repeat(4,1fr);gap:3px 14px}
+.fil{display:flex;align-items:center;gap:5px;cursor:pointer;font-size:8.5px;color:var(--mut)}
+.fil b{flex:1;height:7px;border-radius:3px;display:block}
+.fil:hover b{outline:1.5px solid var(--navy)}
+.s-sano b{background:#5FA97C}.s-osserva b{background:#E0B25C}.s-critico b{background:#C96A5B}
+.fil .dot{width:5px;height:5px;border-radius:50%;background:var(--navy);opacity:.7}
+.leg{display:flex;gap:14px;font-size:10px;color:var(--mut);margin-top:8px;flex-wrap:wrap}
+.leg i{display:inline-block;width:10px;height:7px;border-radius:3px;margin-right:4px}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{text-align:left;background:var(--navy);color:#fff;padding:6px 9px;font-weight:600}
+td{padding:6px 9px;border-bottom:1px solid var(--bd)}
+tr.click{cursor:pointer}tr.click:hover{background:var(--lt)}
+.pill{font-size:10px;font-weight:700;padding:2px 9px;border-radius:12px;color:#fff;white-space:nowrap}
+.p-ok{background:var(--ok)}.p-w{background:var(--or)}.p-o{background:var(--mut)}
+.sev-alta{color:var(--warn);font-weight:700}.sev-media{color:var(--giallo);font-weight:600}.sev-bassa{color:var(--mut)}
+#ovl{position:fixed;inset:0;background:rgba(19,32,47,.6);display:none;z-index:20;align-items:center;justify-content:center}
+#modal{background:#fff;border-radius:14px;max-width:620px;width:92%;max-height:80vh;overflow:auto;padding:22px;box-shadow:0 10px 40px rgba(0,0,0,.3)}
+#modal h3{color:var(--or);font-size:15px;margin-bottom:10px}#modal .x{float:right;cursor:pointer;color:var(--mut);font-size:18px}
+footer{max-width:1240px;margin:8px auto 30px;padding:0 20px;font-size:11px;color:var(--mut);font-style:italic}
+@media(max-width:900px){.grid{grid-template-columns:1fr}.fmap{grid-template-columns:repeat(2,1fr)}}
+</style></head><body>
+<header><div class="logo">OPTIMA <span>INSIGHT</span> · PR Guardian</div>
+<div class="badge">LIVE — IL DATABASE SI AGGIORNA OGNI NOTTE (dati simulati dal DT)</div>
+<div class="sito" id="sito"></div></header>
+<main>
+<div class="kpis" id="kpis"></div>
+<div class="vbox" id="vbox"></div>
+<div class="mesi" id="mesi"></div>
+<div class="grid">
+ <div class="card"><h2>Soiling-loss giornaliera <small>· garanzia ≤1,0% · bonus &lt;0,7% · clicca un punto</small></h2><canvas id="cSoil"></canvas></div>
+ <div class="card"><h2>Decomposizione delle perdite <small>· media mensile %</small></h2><canvas id="cLoss"></canvas></div>
+</div>
+<div class="card" style="margin-bottom:16px"><h2>Mappa salute dei filari <small>· la "qualità di vita" del vostro impianto · clicca un filare</small><span id="salstat" style="float:right;font-weight:400;font-size:11px;color:var(--mut)"></span></h2>
+ <div class="fmap" id="fmap"></div>
+ <div class="leg"><span><i style="background:#5FA97C"></i>sano</span><span><i style="background:#E0B25C"></i>da osservare</span><span><i style="background:#C96A5B"></i>intervento consigliato</span><span>● = pulito stanotte</span></div></div>
+<div class="grid">
+ <div class="card"><h2>Registro salute moduli <small>· anomalie verificate, con evidenza · clicca una riga</small></h2>
+  <div style="max-height:300px;overflow:auto"><table id="tf"><thead><tr><th>Modulo</th><th>Classe IEC</th><th>ΔT</th><th>Sev.</th><th>Stato</th></tr></thead><tbody></tbody></table></div></div>
+ <div class="card"><h2>I vostri ticket aperti <small>· SLA risposta &lt;24h</small></h2><table id="tk"></table>
+  <h2 style="margin-top:14px">Report <small>· archivio</small></h2>
+  <div style="font-size:12px;color:var(--mut)">📄 Report mensile 2026-05 · 📄 2026-04 · 📄 2026-03 · 📄 Audit EL baseline T0 <i>(demo: download disattivato)</i></div></div>
+</div>
+</main>
+<div id="ovl" onclick="if(event.target.id==='ovl')chiudi()"><div id="modal"></div></div>
+<footer>Report generato automaticamente da Optima Insight · dati SIMULATI dal Digital Twin RoboClean a scopo dimostrativo · in questa vista compaiono SOLO anomalie verificate e pubblicate, con evidenza fotografica · Optima Clean Solar — powered by RoboClean</footer>
+<script>
+const SB="https://ugqvimmhkhotusmzatri.supabase.co/rest/v1", APIKEY="sb_publishable_uK25-QUQUtC4Q-BQLe8OCw_SI8HD4WU";
+async function q(p){ const r=await fetch(SB+"/"+p,{headers:{apikey:APIKEY}}); if(!r.ok) throw new Error(p+": "+r.status); return r.json(); }
+async function loadG(){
+  const [giorni,mesi,finding,filari,valore]=await Promise.all([q("pub_giorni"),q("pub_mesi"),q("pub_finding"),q("pub_filari"),q("pub_valore")]);
+  const days=giorni.map(x=>({date:x.day,soiling:+x.soiling,thermal:+x.thermal,fault:+x.fault,down:+x.down,m2:+x.m2,water_L:+x.water_l}));
+  const findings=finding.map(f=>({modulo:f.modulo,classe:f.classe,dT:+f.dt,sev:f.sev,stato:f.stato,marca:f.marca,data:f.data,ticket:f.ticket,kwh:+f.kwh}));
+  const fil=filari.map(f=>({id:f.id,sal:f.critico?'critico':(f.aperti>0?'osserva':'sano'),days:+f.days,
+    det:findings.filter(x=>x.modulo.startsWith(f.id+'-')).map(d=>({m:d.modulo,c:d.classe,dT:d.dT,sev:d.sev,st:d.stato,tk:d.ticket,kwh:d.kwh}))}));
+  const kwh=+valore[0].kwh_recuperati, acqua=days.reduce((a,x)=>a+x.water_L,0)/1000;
+  return {sito:"Infinity 50 — blocco campione (104 filari) · DATI LIVE dal database",
+    gen:days[days.length-1].date+" (ultima notte scritta dal battito)",
+    days, mesi:mesi.map(m=>({mese:m.mese,soiling:+m.soiling,esito:m.esito,m2:+m.m2,acqua_m3:+m.acqua_m3})),
+    findings, filari:fil, ticket_aperti:+valore[0].ticket_aperti,
+    valore:{kwh, v_energia:+(kwh*72/1e6).toFixed(2), acqua_m3:+acqua.toFixed(1), v_acqua:+(acqua*3/1000).toFixed(2),
+            scans_shadow:2.6, proiezione_sito_MWh:+(kwh*18.4/1000).toFixed(1), proiezione_sito_kEUR:+(kwh*18.4*72/1e6).toFixed(1)}};
+}
+(async()=>{ let G;
+ try{ G=await loadG(); }
+ catch(e){ document.body.insertAdjacentHTML('beforeend','<div style="position:fixed;inset:0;background:#13202F;color:#fff;display:flex;align-items:center;justify-content:center;font-family:Calibri"><div><h2 style="color:#E8650D">Database non raggiungibile</h2><p>'+e.message+'</p></div></div>'); return; }
+
+
+const it=n=>n.toLocaleString('it-IT');
+function apri(t,h){document.getElementById('modal').innerHTML='<span class="x" onclick="chiudi()">✕</span><h3>'+t+'</h3>'+h;document.getElementById('ovl').style.display='flex'}
+function chiudi(){document.getElementById('ovl').style.display='none'}
+document.getElementById('sito').textContent=G.sito+' · aggiornato '+G.gen;
+const days=G.days, curM=G.mesi[G.mesi.length-1];
+const lastClean=[...days].reverse().find(x=>x.m2>0);
+const KP=[[curM.soiling.toFixed(2).replace('.',',')+'%','Soiling-loss media mese (garanzia ≤1%)','g','gar'],
+ [(100-curM.soiling).toFixed(2).replace('.',',')+'%','PR al netto dello sporco','n','gar'],
+ [it(lastClean.m2)+' m²','Puliti nell\'ultima notte operativa','n','pulizia'],
+ [it(G.valore.kwh)+' kWh','Energia recuperata da ticket chiusi','','valore'],
+ [G.ticket_aperti,'Ticket aperti — SLA <24h','n','ticket'],
+ [G.valore.acqua_m3.toFixed(1).replace('.',',')+' m³','Acqua usata nel periodo (−90% vs manuale)','g','acqua']];
+kpis.innerHTML=KP.map(k=>`<div class="kpi" onclick="kk('${k[3]}')"><div class="v ${k[2]}">${k[0]}</div><div class="l">${k[1]} 🔍</div></div>`).join('');
+function kk(w){
+ if(w==='gar')apri('La vostra garanzia — come la misuriamo','<p>Soiling-loss media mensile misurata con coppie di riferimento/stazione IEC 61724-1, con diritto di audit sul metodo.</p><p style="margin-top:8px"><b>Mese corrente: '+curM.soiling.toFixed(2).replace('.',',')+'%</b> — sotto la soglia di garanzia 1,0% (penali a scaglioni oltre; bonus simmetrico sotto 0,7%).</p>');
+ if(w==='pulizia')apri('Pulizia — il ciclo','<p>Notti alterne a spazzola+aria con forza controllata (≤48 N, certificata da audit EL annuale) + passaggio acqua dosata quindicinale anti-cementazione (0,3 L/m²).</p><p style="margin-top:8px">Copertura piano: <b>100%</b> nelle ultime 30 notti operative.</p>');
+ if(w==='valore')apri('Energia recuperata — da dove viene','<p>Ogni ticket chiuso (hotspot, diodi, stringhe) torna a produrre: <b>'+it(G.valore.kwh)+' kWh</b> recuperati nel periodo sul blocco campione.</p><p style="margin-top:8px">Proiezione sito intero (58,9 MWp): <b>'+G.valore.proiezione_sito_MWh+' MWh/anno ≈ '+G.valore.proiezione_sito_kEUR+' k€/anno</b> al vostro PPA.</p>');
+ if(w==='ticket')tk.scrollIntoView({behavior:'smooth'});
+ if(w==='acqua')apri('Acqua — il conto ambientale','<p><b>'+G.valore.acqua_m3.toFixed(1).replace('.',',')+' m³</b> usati nel periodo (solo passaggi wet). Il lavaggio manuale equivalente ne userebbe ~10×.</p><p style="margin-top:8px">Il dato entra nel vostro report ESG trimestrale, pronto per i vostri investitori.</p>');
+}
+vbox.innerHTML=`<div><div class="big">${G.valore.v_energia.toFixed(2).replace('.',',')} k€</div><div class="lbl">energia recuperata dai ticket chiusi (blocco campione, a PPA)</div></div>
+<div><div class="big">${G.valore.scans_shadow.toFixed(1).replace('.',',')} k€</div><div class="lbl">valore di mercato delle scansioni termiche incluse (prezzo drone)</div></div>
+<div><div class="big">${G.valore.proiezione_sito_kEUR.toFixed(1).replace('.',',')} k€/anno</div><div class="lbl">proiezione recupero guasti su sito intero 58,9 MWp</div></div>
+<div style="max-width:330px;font-size:13px">Il <b>Conto del Valore</b>: quello che il servizio vi sta restituendo, voce per voce, misurato — non promesso. Aggiornato a ogni scansione.</div>`;
+mesi.innerHTML=G.mesi.map(m=>`<div class="mese"><span class="e">${m.esito}</span>${m.mese}<br><b>${m.soiling.toFixed(2).replace('.',',')}%</b> <span style="color:#C3CEDA;font-size:11px">soiling medio · ${it(m.m2)} m² · ${String(m.acqua_m3).replace('.',',')} m³</span></div>`).join('');
+new Chart(cSoil,{type:'line',data:{labels:days.map(x=>x.date.slice(5)),datasets:[
+ {label:'Soiling-loss %',data:days.map(x=>x.soiling),borderColor:'#13202F',backgroundColor:'rgba(19,32,47,.06)',fill:true,pointRadius:1.5,borderWidth:2,tension:.3},
+ {label:'Garanzia 1,0%',data:days.map(_=>1),borderColor:'#A33232',borderDash:[6,4],pointRadius:0,borderWidth:1.5},
+ {label:'Bonus 0,7%',data:days.map(_=>0.7),borderColor:'#1E7A4F',borderDash:[3,4],pointRadius:0,borderWidth:1.5}]},
+ options:{onClick:(e,el)=>{if(el.length){const d=days[el[0].index];apri('Giorno '+d.date,'<table><tr><td>Soiling-loss</td><td><b>'+String(d.soiling).replace('.',',')+'%</b></td></tr><tr><td>m² puliti</td><td>'+it(d.m2)+'</td></tr><tr><td>Acqua</td><td>'+d.water_L+' L</td></tr><tr><td>Esito</td><td>'+(d.soiling<=1?'<b style=color:#1E7A4F>in garanzia</b>':'<b style=color:#A33232>sopra soglia</b>')+'</td></tr></table>')}},
+ plugins:{legend:{labels:{boxWidth:14,font:{size:10.5}}}},scales:{y:{min:0,ticks:{callback:v=>v+'%'}},x:{ticks:{maxTicksLimit:12}}}}});
+new Chart(cLoss,{type:'bar',data:{labels:G.mesi.map(m=>m.mese),datasets:[
+ ['Soiling','#13202F','soiling'],['Termico','#33506B','thermal'],['Guasti','#E8650D','fault'],['Downtime','#9AA7B2','down']].map(s=>({label:s[0],backgroundColor:s[1],
+ data:G.mesi.map(m=>{const xs=days.filter(x=>x.date.startsWith(m.mese));return +(xs.reduce((a,x)=>a+(s[2]==='soiling'?x.soiling:x[s[2]]),0)/xs.length).toFixed(2)})}))},
+ options:{scales:{x:{stacked:true},y:{stacked:true,ticks:{callback:v=>v+'%'}}},plugins:{legend:{labels:{boxWidth:14,font:{size:10.5}}}}}});
+const SC={sano:'s-sano',osserva:'s-osserva',critico:'s-critico'};
+const ns={sano:0,osserva:0,critico:0}; G.filari.forEach(f=>ns[f.sal]++);
+salstat.textContent='sani: '+ns.sano+' · da osservare: '+ns.osserva+' · intervento: '+ns.critico;
+fmap.innerHTML=G.filari.map(f=>`<div class="fil ${SC[f.sal]}">${f.id.replace('F','')}<b title="${f.id}"></b>${f.days<=0?'<span class=dot></span>':''}</div>`).join('');
+Array.from(document.querySelectorAll('.fil')).forEach((el,i)=>{el.onclick=()=>{const f=G.filari[i];
+ const det=f.det.length?'<table><tr><th>Modulo</th><th>Classe</th><th>ΔT</th><th>Stato</th></tr>'+f.det.map(d=>'<tr><td><b>'+d.m+'</b></td><td>'+d.c+'</td><td>'+String(d.dT).replace('.',',')+'°C</td><td>'+d.st+' · '+d.tk+(d.kwh?' · +'+it(d.kwh)+' kWh':'')+'</td></tr>').join('')+'</table>':'<p style="color:#1E7A4F"><b>Filare sano:</b> nessuna anomalia verificata all\'ultima scansione (184 moduli).</p>';
+ apri('Filare '+f.id,det+'<p style="font-size:11px;color:#5A6B7A;margin-top:8px">Ultima pulizia: '+(f.days<=0?'stanotte':f.days+' notti fa')+' · ogni anomalia mostrata è verificata e corredata di evidenza radiometrica.</p>')}});
+document.querySelector('#tf tbody').innerHTML=G.findings.map((f,i)=>{const p=f.stato==='chiuso'?'p-ok':(f.stato==='in lavorazione'?'p-w':'p-o');
+ return `<tr class="click" data-i="${i}"><td><b>${f.modulo}</b><br><span style="color:#5A6B7A;font-size:10.5px">${f.marca} · ${f.data}</span></td><td>${f.classe}</td><td>${String(f.dT).replace('.',',')}°C</td><td class="sev-${f.sev}">${f.sev}</td><td><span class="pill ${p}">${f.stato}</span>${f.kwh?'<br><span style="font-size:10px;color:#1E7A4F">+'+it(f.kwh)+' kWh</span>':''}</td></tr>`}).join('');
+document.querySelectorAll('#tf tr.click').forEach(tr=>{tr.onclick=()=>{const f=G.findings[+tr.dataset.i];
+ apri('Anomalia '+f.modulo+' — evidenza','<table><tr><td>Classe IEC 62446-3</td><td><b>'+f.classe+'</b></td></tr><tr><td>ΔT misurato</td><td>'+String(f.dT).replace('.',',')+'°C</td></tr><tr><td>Modulo</td><td>'+f.marca+'</td></tr><tr><td>Rilevato il</td><td>'+f.data+'</td></tr><tr><td>Ticket</td><td>'+f.ticket+'</td></tr>'+(f.kwh?'<tr><td>Energia recuperata</td><td><b style=color:#1E7A4F>+'+it(f.kwh)+' kWh</b></td></tr>':'')+'</table><p style="font-size:11px;color:#5A6B7A;margin-top:8px">📷 Evidenza radiometrica georeferenziata allegata al ticket (demo: anteprima disattivata). Ogni anomalia è verificata da un tecnico prima della pubblicazione.</p>')}});
+tk.innerHTML='<tr><th>Ticket</th><th>Modulo</th><th>Anomalia</th><th>Stato</th></tr>'+(G.tickets.length?G.tickets.map(t=>`<tr><td><b>${t.tk}</b></td><td>${t.m}</td><td>${t.c}</td><td>${t.st} · <span style="color:#5A6B7A;font-size:10.5px">${t.sla}</span></td></tr>`).join(''):'<tr><td colspan=4 style="color:#1E7A4F"><b>Nessun ticket aperto.</b></td></tr>');
+
+})();</script></body></html>
