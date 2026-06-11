@@ -84,12 +84,14 @@ async function loadG(){
     gen:days[days.length-1].date+" (ultima notte scritta dal battito)",
     days, mesi:mesi.map(m=>({mese:m.mese,soiling:+m.soiling,esito:m.esito,m2:+m.m2,acqua_m3:+m.acqua_m3})),
     findings, filari:fil, ticket_aperti:+valore[0].ticket_aperti,
+    tickets: findings.filter(f=>f.stato!=='chiuso').slice(0,6).map(f=>({tk:f.ticket,m:f.modulo,c:f.classe,st:f.stato,sla:'risposta <24h'})),
     valore:{kwh, v_energia:+(kwh*72/1e6).toFixed(2), acqua_m3:+acqua.toFixed(1), v_acqua:+(acqua*3/1000).toFixed(2),
             scans_shadow:2.6, proiezione_sito_MWh:+(kwh*18.4/1000).toFixed(1), proiezione_sito_kEUR:+(kwh*18.4*72/1e6).toFixed(1)}};
 }
 (async()=>{ let G;
  try{ G=await loadG(); }
  catch(e){ document.body.insertAdjacentHTML('beforeend','<div style="position:fixed;inset:0;background:#13202F;color:#fff;display:flex;align-items:center;justify-content:center;font-family:Calibri"><div><h2 style="color:#E8650D">Database non raggiungibile</h2><p>'+e.message+'</p></div></div>'); return; }
+ window.apri=apri; window.chiudi=chiudi; window.kk=kk;  // esposte PRIMA del render: un errore di disegno non blocca mai la chiusura
 
 
 const it=n=>n.toLocaleString('it-IT');
@@ -140,5 +142,4 @@ document.querySelectorAll('#tf tr.click').forEach(tr=>{tr.onclick=()=>{const f=G
  apri('Anomalia '+f.modulo+' — evidenza','<table><tr><td>Classe IEC 62446-3</td><td><b>'+f.classe+'</b></td></tr><tr><td>ΔT misurato</td><td>'+String(f.dT).replace('.',',')+'°C</td></tr><tr><td>Modulo</td><td>'+f.marca+'</td></tr><tr><td>Rilevato il</td><td>'+f.data+'</td></tr><tr><td>Ticket</td><td>'+f.ticket+'</td></tr>'+(f.kwh?'<tr><td>Energia recuperata</td><td><b style=color:#1E7A4F>+'+it(f.kwh)+' kWh</b></td></tr>':'')+'</table><p style="font-size:11px;color:#5A6B7A;margin-top:8px">📷 Evidenza radiometrica georeferenziata allegata al ticket (demo: anteprima disattivata). Ogni anomalia è verificata da un tecnico prima della pubblicazione.</p>')}});
 tk.innerHTML='<tr><th>Ticket</th><th>Modulo</th><th>Anomalia</th><th>Stato</th></tr>'+(G.tickets.length?G.tickets.map(t=>`<tr><td><b>${t.tk}</b></td><td>${t.m}</td><td>${t.c}</td><td>${t.st} · <span style="color:#5A6B7A;font-size:10.5px">${t.sla}</span></td></tr>`).join(''):'<tr><td colspan=4 style="color:#1E7A4F"><b>Nessun ticket aperto.</b></td></tr>');
 
-window.apri=apri; window.chiudi=chiudi; window.kk=kk;   // esposte fuori dalla bolla async: i bottoni inline le richiamano
 })();</script></body></html>
