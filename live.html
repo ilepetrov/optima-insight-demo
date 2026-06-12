@@ -54,7 +54,7 @@ footer{max-width:1240px;margin:8px auto 30px;padding:0 20px;font-size:11px;color
 <div class="vbox" id="vbox"></div>
 <div class="mesi" id="mesi"></div>
 <div class="grid">
- <div class="card" style="margin-bottom:16px"><h2>I vostri risultati per periodo <small>· ultima notte · mese in corso (cumulato) · anno in corso (cumulato)</small></h2><div id="periodi" style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px"></div></div>
+ <div class="card" style="margin-bottom:16px"><h2>I vostri risultati per periodo — SITO INTERO <small>· notte · mese (cum.) · anno (cum.) · esteso dal blocco strumentato ×6</small></h2><div id="periodi" style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px"></div></div>
 <div class="card"><h2>Soiling-loss giornaliera <small>· garanzia ≤1,0% · bonus &lt;0,7% · clicca un punto</small></h2><canvas id="cSoil"></canvas></div>
  <div class="card"><h2>Decomposizione delle perdite <small>· media mensile %</small></h2><canvas id="cLoss"></canvas></div>
 </div>
@@ -83,7 +83,7 @@ async function loadG(){
   const fil=filari.map(f=>({id:f.id,sal:f.critico?'critico':(f.aperti>0?'osserva':'sano'),days:+f.days,
     det:findings.filter(x=>x.modulo.startsWith(f.id+'-')).map(d=>({m:d.modulo,c:d.classe,dT:d.dT,sev:d.sev,st:d.stato,tk:d.ticket,kwh:d.kwh}))}));
   const kwh=+valore[0].kwh_recuperati, acqua=days.reduce((a,x)=>a+x.water_L,0)/1000;
-  return {sito:"Infinity 50 — blocco campione (104 filari) · DATI LIVE dal database",
+  return {sito:"Infinity 50 — 58,9 MWp · strumentato: blocco campione 104 filari · DATI LIVE dal database",
     vgiorni:vgiorni.map(v=>({d:String(v.day),e:+v.valore_pulizia_eur})),
     gen:days[days.length-1].date+" (ultima notte scritta dal battito)",
     days, mesi:mesi.map(m=>({mese:m.mese,soiling:+m.soiling,esito:m.esito,m2:+m.m2,acqua_m3:+m.acqua_m3})),
@@ -119,8 +119,8 @@ kpis.innerHTML=KP.map(k=>`<div class="kpi" onclick="kk('${k[3]}')"><div class="v
    acqua:arr.reduce((a,x)=>a+(x.water_L||0),0)/1000};}
  const g=agg([days[days.length-1]]), m=agg(days.filter(x=>x.date.startsWith(mm))), a=agg(days.filter(x=>x.date.startsWith(yy)));
  const blk=(tit,x,nota)=>'<div style="background:var(--c2,#1C2C3E);border-radius:10px;padding:10px 14px"><div style="font-size:10px;font-weight:700;color:#E8650D;letter-spacing:1px">'+tit+'</div>'
-  +'<div style="font-size:20px;font-weight:800">'+x.m2.toLocaleString('it-IT')+' m² puliti</div>'
-  +'<div style="font-size:10.5px;color:#C3CEDA">'+x.notti+' notti operative · soiling medio '+x.soil.toFixed(2).replace('.',',')+'% · acqua '+x.acqua.toFixed(1).replace('.',',')+' m³</div>'
+  +'<div style="font-size:20px;font-weight:800">'+Math.round(x.m2*6).toLocaleString('it-IT')+' m² puliti</div>'
+  +'<div style="font-size:10.5px;color:#C3CEDA">'+x.notti+' notti operative · soiling medio '+x.soil.toFixed(2).replace('.',',')+'% · acqua '+(x.acqua*6).toFixed(1).replace('.',',')+' m³</div>'
   +'<div style="font-size:9.5px;color:#7C8B99;margin-top:3px">'+nota+'</div></div>';
  document.getElementById('periodi').innerHTML=
   blk('ULTIMA NOTTE · '+ref,g,'attività del singolo giorno')+
@@ -154,13 +154,13 @@ function drawValore(){
  const acqP=days.reduce((a,x)=>a+(inP(x.date)?(x.water_L||0):0),0)/1000;
  const NM={notte:'GIORNO',mese:'MESE',anno:'ANNO',inizio:'DALL\'INIZIO'};
  const sel=['notte','mese','anno','inizio'].map(pp=>'<span onclick="setvper(\''+pp+'\')" style="cursor:pointer;padding:3px 10px;border-radius:14px;font-size:11px;font-weight:700;'+(pp===VPER?'background:#E8650D;color:#fff':'background:#22344A;color:#C3CEDA')+'">'+NM[pp]+'</span>').join(' ');
- vbox.innerHTML=`<div style="width:100%"><div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px"><b style="font-size:13px">IL CONTO DEL VALORE \u2014 scegli il periodo:</b> ${sel} <span style="font-size:11px;color:#7CD9A5;font-weight:700">${lbl} \u00b7 blocco campione (\u2248 1/6 del sito)</span></div>
+ vbox.innerHTML=`<div style="width:100%"><div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px"><b style="font-size:13px">IL CONTO DEL VALORE \u2014 scegli il periodo:</b> ${sel} <span style="font-size:11px;color:#7CD9A5;font-weight:700">${lbl} \u00b7 <b>SITO INTERO 58,9 MWp</b> \u2014 misure dal blocco strumentato, estese \u00d76 (dichiarato)</span></div>
  <div style="display:flex;gap:26px;flex-wrap:wrap">
- <div><div class="big">${it(Math.round(vpP))} \u20ac</div><div class="lbl"><b>resa protetta dalla PULIZIA</b> nel periodo \u2014 sporco evitato vs pulizia manuale, al vostro PPA [controfattuale, stesso metodo del backtest]</div></div>
- <div><div class="big">${it(enP)} \u20ac</div><div class="lbl">guadagno da GUASTI CURATI nel periodo \u2014 ${it(Math.round(kwhP))} kWh da ticket chiusi</div></div>
- <div><div class="big" style="color:#fff">${it(Math.round(vpP+enP))} \u20ac</div><div class="lbl"><b>TOTALE restituito nel periodo</b> \u2014 blocco campione. <b style="color:#7CD9A5">Sul sito intero \u2248 ${it(Math.round((vpP+enP)*FB))} \u20ac</b> nello stesso periodo. (+${scN} scansioni incluse, ${it(Math.round(scN*PXS))} \u20ac \u00b7 acqua ${acqP.toFixed(1).replace('.',',')} m\u00b3)</div></div>
+ <div><div class="big">${it(Math.round(vpP*FB))} \u20ac</div><div class="lbl"><b>resa protetta dalla PULIZIA</b> nel periodo, sito intero \u2014 sporco evitato vs pulizia manuale, al vostro PPA [controfattuale, stesso metodo del backtest]</div></div>
+ <div><div class="big">${it(Math.round(enP*FB))} \u20ac</div><div class="lbl">guadagno da GUASTI CURATI nel periodo \u2014 ${it(Math.round(kwhP))} kWh misurati sul blocco, estesi \u00d76</div></div>
+ <div><div class="big" style="color:#fff">${it(Math.round((vpP+enP)*FB))} \u20ac</div><div class="lbl"><b>TOTALE restituito nel periodo, SITO INTERO</b> (misurato sul blocco: ${it(Math.round(vpP+enP))} \u20ac). (+${scN} scansioni incluse, ${it(Math.round(scN*PXS))} \u20ac \u00b7 acqua sito \u2248 ${(acqP*FB).toFixed(1).replace('.',',')} m\u00b3)</div></div>
  <div><div class="big" style="color:#F5A623">\u2248 ${it(PRO_SITO)} \u20ac/anno</div><div class="lbl"><b>proiezione ANNUA, SITO INTERO</b> (58,9 MWp). Il ponte: totale periodo \u00d76 (sito) \u00f7 giorni misurati \u00d7365 \u2014 ritmo attuale \u2248 ${it(Math.round(VMED*FB+G.valore.proiezione_sito_kEUR*1000/365))} \u20ac/giorno a livello sito</div></div>
- </div><div style="font-size:10.5px;color:#8FA0B0;margin-top:8px">Coerenza dichiarata: i valori del periodo sono del blocco campione; la proiezione annua \u00d76 riporta al sito intero \u2014 stessi metodi e stesse formule del backtest consegnato. Selezionando GIORNO i guasti possono valere 0 \u20ac: maturano nei giorni di scansione.</div></div>`;
+ </div><div style="font-size:10.5px;color:#8FA0B0;margin-top:8px">Coerenza dichiarata: il robot strumenta il blocco campione (1/6 del sito); tutti i valori in euro sono estesi al sito intero col fattore \u00d76 \u2014 stessi metodi e stesse formule del backtest consegnato. Selezionando GIORNO i guasti possono valere 0 \u20ac: maturano nei giorni di scansione.</div></div>`;
 }
 drawValore();
 mesi.innerHTML=G.mesi.map(m=>`<div class="mese"><span class="e">${m.esito}</span>${m.mese}<br><b>${m.soiling.toFixed(2).replace('.',',')}%</b> <span style="color:#C3CEDA;font-size:11px">soiling medio · ${it(m.m2)} m² · ${String(m.acqua_m3).replace('.',',')} m³</span></div>`).join('');
