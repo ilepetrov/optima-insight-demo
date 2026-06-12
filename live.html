@@ -77,13 +77,14 @@ window.onerror=function(m,src,l,c,e){var b=document.getElementById("errban");if(
 const SB="https://ugqvimmhkhotusmzatri.supabase.co/rest/v1", APIKEY="sb_publishable_uK25-QUQUtC4Q-BQLe8OCw_SI8HD4WU";
 async function q(p){ const r=await fetch(SB+"/"+p,{headers:{apikey:APIKEY}}); if(!r.ok) throw new Error(p+": "+r.status); return r.json(); }
 async function loadG(){
-  const [giorni,mesi,finding,filari,valore]=await Promise.all([q("pub_giorni"),q("pub_mesi"),q("pub_finding"),q("pub_filari"),q("pub_valore")]);
+  const [giorni,mesi,finding,filari,valore,vgiorni]=await Promise.all([q("pub_giorni"),q("pub_mesi"),q("pub_finding"),q("pub_filari"),q("pub_valore"),q("pub_valore_giorni")]);
   const days=giorni.map(x=>({date:x.day,soiling:+x.soiling,thermal:+x.thermal,fault:+x.fault,down:+x.down,m2:+x.m2,water_L:+x.water_l}));
   const findings=finding.map(f=>({modulo:f.modulo,classe:f.classe,dT:+f.dt,sev:f.sev,stato:f.stato,marca:f.marca,data:f.data,ticket:f.ticket,kwh:+f.kwh}));
   const fil=filari.map(f=>({id:f.id,sal:f.critico?'critico':(f.aperti>0?'osserva':'sano'),days:+f.days,
     det:findings.filter(x=>x.modulo.startsWith(f.id+'-')).map(d=>({m:d.modulo,c:d.classe,dT:d.dT,sev:d.sev,st:d.stato,tk:d.ticket,kwh:d.kwh}))}));
   const kwh=+valore[0].kwh_recuperati, acqua=days.reduce((a,x)=>a+x.water_L,0)/1000;
   return {sito:"Infinity 50 — blocco campione (104 filari) · DATI LIVE dal database",
+    vgiorni:vgiorni.map(v=>({d:String(v.day),e:+v.valore_pulizia_eur})),
     gen:days[days.length-1].date+" (ultima notte scritta dal battito)",
     days, mesi:mesi.map(m=>({mese:m.mese,soiling:+m.soiling,esito:m.esito,m2:+m.m2,acqua_m3:+m.acqua_m3})),
     findings, filari:fil, ticket_aperti:+valore[0].ticket_aperti,
@@ -133,29 +134,33 @@ function kk(w){
  if(w==='ticket')tk.scrollIntoView({behavior:'smooth'});
  if(w==='acqua')apri('Acqua — il conto ambientale','<p><b>'+G.valore.acqua_m3.toFixed(1).replace('.',',')+' m³</b> usati nel periodo (solo passaggi wet). Il lavaggio manuale equivalente ne userebbe ~10×.</p><p style="margin-top:8px">Il dato entra nel vostro report ESG trimestrale, pronto per i vostri investitori.</p>');
 }
-// CONTO DEL VALORE con selettore di periodo (mandato ILE)
+// CONTO DEL VALORE con selettore di periodo — riconciliato col deck (mandato ILE)
 const PPA=G.valore.kwh? G.valore.v_energia*1000/G.valore.kwh : 0.072;
 const SCM=[...new Set(G.findings.filter(f=>f.kwh>0).map(f=>String(f.data).slice(0,7)))].sort();
 const PXS=SCM.length? G.valore.scans_shadow*1000/SCM.length : 0;
+const FB=6.0; // blocco campione ≈ 1/6 del sito 58,9 MWp
+const VMED=G.vgiorni.length? G.vgiorni.reduce((a,x)=>a+x.e,0)/G.vgiorni.length : 0;
+const PRO_SITO=Math.round((VMED*365*FB + G.valore.proiezione_sito_kEUR*1000)/1000)*1000;
 window.VPER='inizio';
 window.setvper=function(p){window.VPER=p;drawValore();};
 function drawValore(){
  const ref=days[days.length-1].date, mm=ref.slice(0,7), yy=ref.slice(0,4);
  const inP=d=>VPER==='inizio'?true:VPER==='anno'?String(d).startsWith(yy):VPER==='mese'?String(d).startsWith(mm):String(d)===ref;
  const lbl={notte:'ULTIMA NOTTE \u00b7 '+ref,mese:'MESE IN CORSO \u00b7 '+mm,anno:'ANNO IN CORSO \u00b7 '+yy,inizio:'DALL\'INIZIO DEL SERVIZIO'}[VPER];
+ const vpP=G.vgiorni.reduce((a,x)=>a+(inP(x.d)?x.e:0),0);
  const kwhP=G.findings.reduce((a,f)=>a+(inP(f.data)?(f.kwh||0):0),0);
  const enP=Math.round(kwhP*PPA);
  const scN=VPER==='notte'?(G.findings.some(f=>String(f.data)===ref&&f.kwh>0)?1:0):SCM.filter(m=>VPER==='inizio'||(VPER==='anno'&&m.startsWith(yy))||(VPER==='mese'&&m===mm)).length;
  const acqP=days.reduce((a,x)=>a+(inP(x.date)?(x.water_L||0):0),0)/1000;
  const NM={notte:'GIORNO',mese:'MESE',anno:'ANNO',inizio:'DALL\'INIZIO'};
  const sel=['notte','mese','anno','inizio'].map(pp=>'<span onclick="setvper(\''+pp+'\')" style="cursor:pointer;padding:3px 10px;border-radius:14px;font-size:11px;font-weight:700;'+(pp===VPER?'background:#E8650D;color:#fff':'background:#22344A;color:#C3CEDA')+'">'+NM[pp]+'</span>').join(' ');
- vbox.innerHTML=`<div style="width:100%"><div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px"><b style="font-size:13px">IL CONTO DEL VALORE \u2014 scegli il periodo:</b> ${sel} <span style="font-size:11px;color:#7CD9A5;font-weight:700">${lbl}</span></div>
+ vbox.innerHTML=`<div style="width:100%"><div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px"><b style="font-size:13px">IL CONTO DEL VALORE \u2014 scegli il periodo:</b> ${sel} <span style="font-size:11px;color:#7CD9A5;font-weight:700">${lbl} \u00b7 blocco campione (\u2248 1/6 del sito)</span></div>
  <div style="display:flex;gap:26px;flex-wrap:wrap">
- <div><div class="big">${it(enP)} \u20ac</div><div class="lbl">guadagno da energia recuperata nel periodo \u2014 ${it(Math.round(kwhP))} kWh da ticket chiusi, al vostro PPA</div></div>
- <div><div class="big">${it(Math.round(scN*PXS))} \u20ac</div><div class="lbl">valore di mercato delle ${scN} scansioni termiche incluse nel periodo (prezzo drone equivalente)</div></div>
- <div><div class="big">${acqP.toFixed(1).replace('.',',')} m\u00b3</div><div class="lbl">acqua usata nel periodo \u2014 il lavaggio manuale ne userebbe ~${Math.round(acqP*10)} m\u00b3</div></div>
- <div><div class="big">${it(Math.round(G.valore.proiezione_sito_kEUR*1000))} \u20ac/anno</div><div class="lbl">proiezione ANNUA recupero guasti su sito intero 58,9 MWp \u2014 non dipende dal periodo scelto</div></div>
- </div><div style="font-size:10.5px;color:#8FA0B0;margin-top:8px">Misurato, non promesso: ogni voce \u00e8 ancorata alle date reali di ticket e notti. Il guadagno matura nei giorni di scansione: selezionando GIORNO pu\u00f2 essere 0 \u20ac \u2014 \u00e8 onest\u00e0, non un difetto.</div></div>`;
+ <div><div class="big">${it(Math.round(vpP))} \u20ac</div><div class="lbl"><b>resa protetta dalla PULIZIA</b> nel periodo \u2014 sporco evitato vs pulizia manuale, al vostro PPA [controfattuale, stesso metodo del backtest]</div></div>
+ <div><div class="big">${it(enP)} \u20ac</div><div class="lbl">guadagno da GUASTI CURATI nel periodo \u2014 ${it(Math.round(kwhP))} kWh da ticket chiusi</div></div>
+ <div><div class="big" style="color:#fff">${it(Math.round(vpP+enP))} \u20ac</div><div class="lbl"><b>TOTALE restituito nel periodo</b> (blocco campione) + ${scN} scansioni incluse (valore ${it(Math.round(scN*PXS))} \u20ac) e acqua ${acqP.toFixed(1).replace('.',',')} m\u00b3 (~10\u00d7 meno del manuale)</div></div>
+ <div><div class="big" style="color:#F5A623">\u2248 ${it(PRO_SITO)} \u20ac/anno</div><div class="lbl"><b>proiezione ANNUA sul SITO INTERO</b> (58,9 MWp): pulizia + guasti, al ritmo misurato finora \u2014 \u00e8 il numero del business case</div></div>
+ </div><div style="font-size:10.5px;color:#8FA0B0;margin-top:8px">Coerenza dichiarata: i valori del periodo sono del blocco campione; la proiezione annua \u00d76 riporta al sito intero \u2014 stessi metodi e stesse formule del backtest consegnato. Selezionando GIORNO i guasti possono valere 0 \u20ac: maturano nei giorni di scansione.</div></div>`;
 }
 drawValore();
 mesi.innerHTML=G.mesi.map(m=>`<div class="mese"><span class="e">${m.esito}</span>${m.mese}<br><b>${m.soiling.toFixed(2).replace('.',',')}%</b> <span style="color:#C3CEDA;font-size:11px">soiling medio · ${it(m.m2)} m² · ${String(m.acqua_m3).replace('.',',')} m³</span></div>`).join('');
