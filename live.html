@@ -101,12 +101,12 @@ function chiudi(){document.getElementById('ovl').style.display='none'}
 document.getElementById('sito').textContent=G.sito+' · aggiornato '+G.gen;
 const days=G.days, curM=G.mesi[G.mesi.length-1];
 const lastClean=[...days].reverse().find(x=>x.m2>0);
-const KP=[[curM.soiling.toFixed(2).replace('.',',')+'%','Soiling-loss media mese (garanzia ≤1%)','g','gar'],
- [(100-curM.soiling).toFixed(2).replace('.',',')+'%','PR al netto dello sporco','n','gar'],
- [it(lastClean.m2)+' m²','Puliti nell\'ultima notte operativa','n','pulizia'],
- [it(G.valore.kwh)+' kWh','Energia recuperata da ticket chiusi','','valore'],
- [G.ticket_aperti,'Ticket aperti — SLA <24h','n','ticket'],
- [G.valore.acqua_m3.toFixed(1).replace('.',',')+' m³','Acqua usata nel periodo (−90% vs manuale)','g','acqua']];
+const KP=[[curM.soiling.toFixed(2).replace('.',',')+'%','Soiling-loss — media MESE IN CORSO (garanzia ≤1%)','g','gar'],
+ [(100-curM.soiling).toFixed(2).replace('.',',')+'%','PR al netto dello sporco — MESE IN CORSO','n','gar'],
+ [it(lastClean.m2)+' m²','Puliti — ULTIMA NOTTE operativa','n','pulizia'],
+ [it(G.valore.kwh)+' kWh','Energia recuperata da ticket chiusi — CUMULATO da inizio servizio','','valore'],
+ [G.ticket_aperti,'Ticket aperti ADESSO — SLA <24h','n','ticket'],
+ [G.valore.acqua_m3.toFixed(1).replace('.',',')+' m³','Acqua usata — CUMULATO da inizio servizio (−90% vs manuale)','g','acqua']];
 kpis.innerHTML=KP.map(k=>`<div class="kpi" onclick="kk('${k[3]}')"><div class="v ${k[2]}">${k[0]}</div><div class="l">${k[1]} 🔍</div></div>`).join('');
 (function(){
  const ref=days[days.length-1].date, mm=ref.slice(0,7), yy=ref.slice(0,4);
@@ -131,9 +131,9 @@ function kk(w){
  if(w==='ticket')tk.scrollIntoView({behavior:'smooth'});
  if(w==='acqua')apri('Acqua — il conto ambientale','<p><b>'+G.valore.acqua_m3.toFixed(1).replace('.',',')+' m³</b> usati nel periodo (solo passaggi wet). Il lavaggio manuale equivalente ne userebbe ~10×.</p><p style="margin-top:8px">Il dato entra nel vostro report ESG trimestrale, pronto per i vostri investitori.</p>');
 }
-vbox.innerHTML=`<div><div class="big">${G.valore.v_energia.toFixed(2).replace('.',',')} k€</div><div class="lbl">energia recuperata dai ticket chiusi (blocco campione, a PPA)</div></div>
-<div><div class="big">${G.valore.scans_shadow.toFixed(1).replace('.',',')} k€</div><div class="lbl">valore di mercato delle scansioni termiche incluse (prezzo drone)</div></div>
-<div><div class="big">${G.valore.proiezione_sito_kEUR.toFixed(1).replace('.',',')} k€/anno</div><div class="lbl">proiezione recupero guasti su sito intero 58,9 MWp</div></div>
+vbox.innerHTML=`<div><div class="big">${G.valore.v_energia.toFixed(2).replace('.',',')} k€</div><div class="lbl">energia recuperata dai ticket chiusi — CUMULATO da inizio servizio (blocco campione, a PPA)</div></div>
+<div><div class="big">${G.valore.scans_shadow.toFixed(1).replace('.',',')} k€</div><div class="lbl">valore di mercato delle scansioni termiche incluse — CUMULATO (prezzo drone)</div></div>
+<div><div class="big">${G.valore.proiezione_sito_kEUR.toFixed(1).replace('.',',')} k€/anno</div><div class="lbl">proiezione ANNUA recupero guasti su sito intero 58,9 MWp</div></div>
 <div style="max-width:330px;font-size:13px">Il <b>Conto del Valore</b>: quello che il servizio vi sta restituendo, voce per voce, misurato — non promesso. Aggiornato a ogni scansione.</div>`;
 mesi.innerHTML=G.mesi.map(m=>`<div class="mese"><span class="e">${m.esito}</span>${m.mese}<br><b>${m.soiling.toFixed(2).replace('.',',')}%</b> <span style="color:#C3CEDA;font-size:11px">soiling medio · ${it(m.m2)} m² · ${String(m.acqua_m3).replace('.',',')} m³</span></div>`).join('');
 new Chart(cSoil,{type:'line',data:{labels:days.map(x=>x.date.slice(5)),datasets:[
