@@ -54,7 +54,8 @@ footer{max-width:1240px;margin:8px auto 30px;padding:0 20px;font-size:11px;color
 <div class="vbox" id="vbox"></div>
 <div class="mesi" id="mesi"></div>
 <div class="grid">
- <div class="card"><h2>Soiling-loss giornaliera <small>· garanzia ≤1,0% · bonus &lt;0,7% · clicca un punto</small></h2><canvas id="cSoil"></canvas></div>
+ <div class="card" style="margin-bottom:16px"><h2>I vostri risultati per periodo <small>· ultima notte · mese in corso (cumulato) · anno in corso (cumulato)</small></h2><div id="periodi" style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px"></div></div>
+<div class="card"><h2>Soiling-loss giornaliera <small>· garanzia ≤1,0% · bonus &lt;0,7% · clicca un punto</small></h2><canvas id="cSoil"></canvas></div>
  <div class="card"><h2>Decomposizione delle perdite <small>· media mensile %</small></h2><canvas id="cLoss"></canvas></div>
 </div>
 <div class="card" style="margin-bottom:16px"><h2>Mappa salute dei filari <small>· la "qualità di vita" del vostro impianto · clicca un filare</small><span id="salstat" style="float:right;font-weight:400;font-size:11px;color:var(--mut)"></span></h2>
@@ -107,6 +108,22 @@ const KP=[[curM.soiling.toFixed(2).replace('.',',')+'%','Soiling-loss media mese
  [G.ticket_aperti,'Ticket aperti — SLA <24h','n','ticket'],
  [G.valore.acqua_m3.toFixed(1).replace('.',',')+' m³','Acqua usata nel periodo (−90% vs manuale)','g','acqua']];
 kpis.innerHTML=KP.map(k=>`<div class="kpi" onclick="kk('${k[3]}')"><div class="v ${k[2]}">${k[0]}</div><div class="l">${k[1]} 🔍</div></div>`).join('');
+(function(){
+ const ref=days[days.length-1].date, mm=ref.slice(0,7), yy=ref.slice(0,4);
+ function agg(arr){const op=arr.filter(x=>x.m2>0);
+  return {m2:arr.reduce((a,x)=>a+x.m2,0),notti:op.length,
+   soil:arr.length?arr.reduce((a,x)=>a+x.soiling,0)/arr.length:0,
+   acqua:arr.reduce((a,x)=>a+(x.water_L||0),0)/1000};}
+ const g=agg([days[days.length-1]]), m=agg(days.filter(x=>x.date.startsWith(mm))), a=agg(days.filter(x=>x.date.startsWith(yy)));
+ const blk=(tit,x,nota)=>'<div style="background:var(--c2,#1C2C3E);border-radius:10px;padding:10px 14px"><div style="font-size:10px;font-weight:700;color:#E8650D;letter-spacing:1px">'+tit+'</div>'
+  +'<div style="font-size:20px;font-weight:800">'+x.m2.toLocaleString('it-IT')+' m² puliti</div>'
+  +'<div style="font-size:10.5px;color:#C3CEDA">'+x.notti+' notti operative · soiling medio '+x.soil.toFixed(2).replace('.',',')+'% · acqua '+x.acqua.toFixed(1).replace('.',',')+' m³</div>'
+  +'<div style="font-size:9.5px;color:#7C8B99;margin-top:3px">'+nota+'</div></div>';
+ document.getElementById('periodi').innerHTML=
+  blk('ULTIMA NOTTE · '+ref,g,'attività del singolo giorno')+
+  blk('MESE IN CORSO · '+mm,m,'cumulato dal 1° del mese')+
+  blk('ANNO IN CORSO · '+yy,a,'cumulato (serie dal '+days[0].date+')');
+})();
 function kk(w){
  if(w==='gar')apri('La vostra garanzia — come la misuriamo','<p>Soiling-loss media mensile misurata con coppie di riferimento/stazione IEC 61724-1, con diritto di audit sul metodo.</p><p style="margin-top:8px"><b>Mese corrente: '+curM.soiling.toFixed(2).replace('.',',')+'%</b> — sotto la soglia di garanzia 1,0% (penali a scaglioni oltre; bonus simmetrico sotto 0,7%).</p>');
  if(w==='pulizia')apri('Pulizia — il ciclo','<p>Notti alterne a spazzola+aria con forza controllata (≤48 N, certificata da audit EL annuale) + passaggio acqua dosata quindicinale anti-cementazione (0,3 L/m²).</p><p style="margin-top:8px">Copertura piano: <b>100%</b> nelle ultime 30 notti operative.</p>');
