@@ -1,9 +1,9 @@
 <!DOCTYPE html><html lang="it"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Optima Insight — PR Guardian</title>
+<title>Solar Oak Insight — PR Guardian</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
 <style>
-:root{--navy:#13202F;--or:#E8650D;--mut:#5A6B7A;--lt:#F4F6F8;--bd:#E3E8EC;--ok:#1E7A4F;--warn:#A33232;--giallo:#B8860B}
+:root{--navy:#1F3864;--or:#C77F1A;--mut:#5A6B7A;--lt:#F4F6F8;--bd:#E3E8EC;--ok:#1E7A4F;--warn:#A33232;--giallo:#B8860B}
 *{box-sizing:border-box;margin:0}body{font:14px/1.45 'Segoe UI',Calibri,sans-serif;background:var(--lt);color:var(--navy)}
 header{background:var(--navy);color:#fff;padding:14px 28px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
 .logo{font-weight:800;font-size:19px}.logo span{color:var(--or)}
@@ -46,7 +46,7 @@ tr.click{cursor:pointer}tr.click:hover{background:var(--lt)}
 footer{max-width:1240px;margin:8px auto 30px;padding:0 20px;font-size:11px;color:var(--mut);font-style:italic}
 @media(max-width:900px){.grid{grid-template-columns:1fr}.fmap{grid-template-columns:repeat(2,1fr)}}
 </style></head><body>
-<header><div class="logo">OPTIMA <span>INSIGHT</span> · PR Guardian</div>
+<header><div class="logo">SOLAR OAK <span>INSIGHT</span> · PR Guardian</div>
 <div class="badge">LIVE — IL DATABASE SI AGGIORNA OGNI NOTTE (dati simulati dal DT)</div>
 <div class="sito" id="sito"></div></header>
 <main>
@@ -70,11 +70,11 @@ footer{max-width:1240px;margin:8px auto 30px;padding:0 20px;font-size:11px;color
 </div>
 </main>
 <div id="ovl" onclick="if(event.target.id==='ovl')chiudi()"><div id="modal"></div></div>
-<footer>Report generato automaticamente da Optima Insight · dati SIMULATI dal Digital Twin RoboClean a scopo dimostrativo · in questa vista compaiono SOLO anomalie verificate e pubblicate, con evidenza fotografica · Optima Clean Solar — powered by RoboClean</footer>
+<footer>Report generato automaticamente da Solar Oak Insight · dati SIMULATI dal Digital Twin RoboClean a scopo dimostrativo · in questa vista compaiono SOLO anomalie verificate e pubblicate, con evidenza fotografica · Solar Oak — powered by RoboClean</footer>
 <script>
 window.onerror=function(m,src,l,c,e){var b=document.getElementById("errban");if(!b){b=document.createElement("div");b.id="errban";b.style.cssText="position:fixed;bottom:0;left:0;right:0;background:#7a1f1f;color:#fff;padding:10px 16px;font:11.5px monospace;z-index:300;white-space:pre-wrap";document.body.appendChild(b);}b.textContent="ERRORE: "+m+" — riga "+l;return false;};
 
-const SB="https://ugqvimmhkhotusmzatri.supabase.co/rest/v1", APIKEY="sb_publishable_uK25-QUQUtC4Q-BQLe8OCw_SI8HD4WU";
+const SB="https://uabfeprwlyqossbtcfcl.supabase.co/rest/v1", APIKEY="sb_publishable_MtUnlI2_LOEL2zJ92ZPtXg_rUPL6EBu";
 async function q(p){ const r=await fetch(SB+"/"+p,{headers:{apikey:APIKEY}}); if(!r.ok) throw new Error(p+": "+r.status); return r.json(); }
 async function loadG(){
   const [giorni,mesi,finding,filari,valore,vgiorni]=await Promise.all([q("pub_giorni"),q("pub_mesi"),q("pub_finding"),q("pub_filari"),q("pub_valore"),q("pub_valore_giorni")]);
@@ -94,7 +94,7 @@ async function loadG(){
 }
 (async()=>{ let G;
  try{ G=await loadG(); }
- catch(e){ document.body.insertAdjacentHTML('beforeend','<div style="position:fixed;inset:0;background:#13202F;color:#fff;display:flex;align-items:center;justify-content:center;font-family:Calibri"><div><h2 style="color:#E8650D">Database non raggiungibile</h2><p>'+e.message+'</p></div></div>'); return; }
+ catch(e){ document.body.insertAdjacentHTML('beforeend','<div style="position:fixed;inset:0;background:#1F3864;color:#fff;display:flex;align-items:center;justify-content:center;font-family:Calibri"><div><h2 style="color:#C77F1A">Database non raggiungibile</h2><p>'+e.message+'</p></div></div>'); return; }
  window.apri=apri; window.chiudi=chiudi; window.kk=kk;  // esposte PRIMA del render: un errore di disegno non blocca mai la chiusura
 
 
@@ -118,7 +118,7 @@ kpis.innerHTML=KP.map(k=>`<div class="kpi" onclick="kk('${k[3]}')"><div class="v
    soil:arr.length?arr.reduce((a,x)=>a+x.soiling,0)/arr.length:0,
    acqua:arr.reduce((a,x)=>a+(x.water_L||0),0)/1000};}
  const g=agg([days[days.length-1]]), m=agg(days.filter(x=>x.date.startsWith(mm))), a=agg(days.filter(x=>x.date.startsWith(yy)));
- const blk=(tit,x,nota)=>'<div style="background:var(--c2,#1C2C3E);border-radius:10px;padding:10px 14px"><div style="font-size:10px;font-weight:700;color:#E8650D;letter-spacing:1px">'+tit+'</div>'
+ const blk=(tit,x,nota)=>'<div style="background:var(--c2,#1C2C3E);border-radius:10px;padding:10px 14px"><div style="font-size:10px;font-weight:700;color:#C77F1A;letter-spacing:1px">'+tit+'</div>'
   +'<div style="font-size:20px;font-weight:800">'+Math.round(x.m2*6).toLocaleString('it-IT')+' m² puliti</div>'
   +'<div style="font-size:10.5px;color:#C3CEDA">'+x.notti+' notti operative · soiling medio '+x.soil.toFixed(2).replace('.',',')+'% · acqua '+(x.acqua*6).toFixed(1).replace('.',',')+' m³</div>'
   +'<div style="font-size:9.5px;color:#7C8B99;margin-top:3px">'+nota+'</div></div>';
@@ -153,7 +153,7 @@ function drawValore(){
  const scN=VPER==='notte'?(G.findings.some(f=>String(f.data)===ref&&f.kwh>0)?1:0):SCM.filter(m=>VPER==='inizio'||(VPER==='anno'&&m.startsWith(yy))||(VPER==='mese'&&m===mm)).length;
  const acqP=days.reduce((a,x)=>a+(inP(x.date)?(x.water_L||0):0),0)/1000;
  const NM={notte:'GIORNO',mese:'MESE',anno:'ANNO',inizio:'DALL\'INIZIO'};
- const sel=['notte','mese','anno','inizio'].map(pp=>'<span onclick="setvper(\''+pp+'\')" style="cursor:pointer;padding:3px 10px;border-radius:14px;font-size:11px;font-weight:700;'+(pp===VPER?'background:#E8650D;color:#fff':'background:#22344A;color:#C3CEDA')+'">'+NM[pp]+'</span>').join(' ');
+ const sel=['notte','mese','anno','inizio'].map(pp=>'<span onclick="setvper(\''+pp+'\')" style="cursor:pointer;padding:3px 10px;border-radius:14px;font-size:11px;font-weight:700;'+(pp===VPER?'background:#C77F1A;color:#fff':'background:#22344A;color:#C3CEDA')+'">'+NM[pp]+'</span>').join(' ');
  vbox.innerHTML=`<div style="width:100%"><div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px"><b style="font-size:13px">IL CONTO DEL VALORE \u2014 scegli il periodo:</b> ${sel} <span style="font-size:11px;color:#7CD9A5;font-weight:700">${lbl} \u00b7 <b>SITO INTERO 58,9 MWp</b> \u2014 misure dal blocco strumentato, estese \u00d76 (dichiarato)</span></div>
  <div style="display:flex;gap:26px;flex-wrap:wrap">
  <div><div class="big">${it(Math.round(vpP*FB))} \u20ac</div><div class="lbl"><b>resa protetta dalla PULIZIA</b> nel periodo, sito intero \u2014 sporco evitato vs pulizia manuale, al vostro PPA [controfattuale, stesso metodo del backtest]</div></div>
@@ -165,13 +165,13 @@ function drawValore(){
 drawValore();
 mesi.innerHTML=G.mesi.map(m=>`<div class="mese"><span class="e">${m.esito}</span>${m.mese}<br><b>${m.soiling.toFixed(2).replace('.',',')}%</b> <span style="color:#C3CEDA;font-size:11px">soiling medio · ${it(m.m2)} m² · ${String(m.acqua_m3).replace('.',',')} m³</span></div>`).join('');
 new Chart(cSoil,{type:'line',data:{labels:days.map(x=>x.date.slice(5)),datasets:[
- {label:'Soiling-loss %',data:days.map(x=>x.soiling),borderColor:'#13202F',backgroundColor:'rgba(19,32,47,.06)',fill:true,pointRadius:1.5,borderWidth:2,tension:.3},
+ {label:'Soiling-loss %',data:days.map(x=>x.soiling),borderColor:'#1F3864',backgroundColor:'rgba(19,32,47,.06)',fill:true,pointRadius:1.5,borderWidth:2,tension:.3},
  {label:'Garanzia 1,0%',data:days.map(_=>1),borderColor:'#A33232',borderDash:[6,4],pointRadius:0,borderWidth:1.5},
  {label:'Bonus 0,7%',data:days.map(_=>0.7),borderColor:'#1E7A4F',borderDash:[3,4],pointRadius:0,borderWidth:1.5}]},
  options:{onClick:(e,el)=>{if(el.length){const d=days[el[0].index];apri('Giorno '+d.date,'<table><tr><td>Soiling-loss</td><td><b>'+String(d.soiling).replace('.',',')+'%</b></td></tr><tr><td>m² puliti</td><td>'+it(d.m2)+'</td></tr><tr><td>Acqua</td><td>'+d.water_L+' L</td></tr><tr><td>Esito</td><td>'+(d.soiling<=1?'<b style=color:#1E7A4F>in garanzia</b>':'<b style=color:#A33232>sopra soglia</b>')+'</td></tr></table>')}},
  plugins:{legend:{labels:{boxWidth:14,font:{size:10.5}}}},scales:{y:{min:0,ticks:{callback:v=>v+'%'}},x:{ticks:{maxTicksLimit:12}}}}});
 new Chart(cLoss,{type:'bar',data:{labels:G.mesi.map(m=>m.mese),datasets:[
- ['Soiling','#13202F','soiling'],['Termico','#33506B','thermal'],['Guasti','#E8650D','fault'],['Downtime','#9AA7B2','down']].map(s=>({label:s[0],backgroundColor:s[1],
+ ['Soiling','#1F3864','soiling'],['Termico','#33506B','thermal'],['Guasti','#C77F1A','fault'],['Downtime','#9AA7B2','down']].map(s=>({label:s[0],backgroundColor:s[1],
  data:G.mesi.map(m=>{const xs=days.filter(x=>x.date.startsWith(m.mese));return +(xs.reduce((a,x)=>a+(s[2]==='soiling'?x.soiling:x[s[2]]),0)/xs.length).toFixed(2)})}))},
  options:{scales:{x:{stacked:true},y:{stacked:true,ticks:{callback:v=>v+'%'}}},plugins:{legend:{labels:{boxWidth:14,font:{size:10.5}}}}}});
 const SC={sano:'s-sano',osserva:'s-osserva',critico:'s-critico'};
