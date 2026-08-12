@@ -160,6 +160,7 @@ tr.nuova td:first-child{box-shadow:inset 3px 0 0 #5ad07a}
     <h1>Cabina di regia</h1>
     <select id="sito" onchange="cambiaSito(this.value)"></select>
     <button onclick="carica()" title="ricarica">↻</button>
+    <button onclick="esci()" title="chiudi la sessione">Esci</button>
     <div class="polso" id="polso"></div>
   </div>
   <div class="avviso" id="avviso" style="display:none"></div>
@@ -260,6 +261,24 @@ async function entra(){
     $('#pwd').value='';
     $('#loginErr').innerHTML='<div class="err">'+esc(e.message)+'</div>';
   }
+}
+
+async function esci(){
+  const accesso = token;
+  token=refresh=null; scadenza=0; profilo=null; siti=[]; sito=null;
+  mappa=[]; polso={}; rover=[]; decisioni=[]; schedaSito={}; origine=[]; vivi=[];
+  guastiRete=[]; ultimoGuasto=0; respiroInCorso=false;
+  [filoDiretta,tickDiretta,filoRespiro].forEach(f=>f&&clearInterval(f));
+  filoDiretta=tickDiretta=filoRespiro=null;
+  Object.keys(cache).forEach(k=>delete cache[k]);
+  $('#quadro').innerHTML=$('#nav').innerHTML=$('#sito').innerHTML='';
+  $('#polso').innerHTML=$('#avviso').innerHTML='';
+  $('#app').style.display='none'; $('#login').style.display='flex';
+  $('#pwd').value=''; $('#email').focus();
+  if(accesso) try{
+    await fetch(URL_BASE+'/auth/v1/logout?scope=local',{method:'POST',
+      headers:{'apikey':CHIAVE,'Authorization':'Bearer '+accesso}});
+  }catch(e){ /* la sessione locale è già stata rimossa */ }
 }
 /* ═══════════════════════════════════════════════════════════════════
    🔴 DIFETTO GRAVE, trovato il 6 agosto 2026 rileggendo la cabina.
