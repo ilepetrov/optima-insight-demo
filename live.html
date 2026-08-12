@@ -75,9 +75,10 @@ footer{max-width:1240px;margin:8px auto 30px;padding:0 20px;font-size:11px;color
 window.onerror=function(m,src,l,c,e){var b=document.getElementById("errban");if(!b){b=document.createElement("div");b.id="errban";b.style.cssText="position:fixed;bottom:0;left:0;right:0;background:#7a1f1f;color:#fff;padding:10px 16px;font:11.5px monospace;z-index:300;white-space:pre-wrap";document.body.appendChild(b);}b.textContent="ERRORE: "+m+" — riga "+l;return false;};
 
 const SB="https://uabfeprwlyqossbtcfcl.supabase.co/rest/v1", APIKEY="sb_publishable_MtUnlI2_LOEL2zJ92ZPtXg_rUPL6EBu";
-async function q(p){ const r=await fetch(SB+"/"+p,{headers:{apikey:APIKEY}}); if(!r.ok) throw new Error(p+": "+r.status); return r.json(); }
+async function q(p,init={}){ const r=await fetch(SB+"/"+p,{...init,headers:{apikey:APIKEY,...init.headers}}); if(!r.ok) throw new Error(p+": "+r.status); return r.json(); }
 async function loadG(){
-  const [giorni,mesi,finding,filari,valore,vgiorni]=await Promise.all([q("pub_giorni"),q("pub_mesi"),q("pub_finding"),q("pub_filari"),q("pub_valore"),q("pub_valore_giorni")]);
+  const {giorni,mesi,finding,filari,valore,vgiorni}=await q("rpc/pub_dashboard",{method:"POST",headers:{"Content-Type":"application/json"},body:"{}"});
+  if(!giorni.length||!mesi.length||valore.length!==1) throw new Error("Nessun dato pubblico disponibile");
   const days=giorni.map(x=>({date:x.day,soiling:+x.soiling,thermal:+x.thermal,fault:+x.fault,down:+x.down,m2:+x.m2,water_L:+x.water_l}));
   const findings=finding.map(f=>({modulo:f.modulo,classe:f.classe,dT:+f.dt,sev:f.sev,stato:f.stato,marca:f.marca,data:f.data,ticket:f.ticket,kwh:+f.kwh}));
   const fil=filari.map(f=>({id:f.id,sal:f.critico?'critico':(f.aperti>0?'osserva':'sano'),days:+f.days,
@@ -94,7 +95,7 @@ async function loadG(){
 }
 (async()=>{ let G;
  try{ G=await loadG(); }
- catch(e){ document.body.insertAdjacentHTML('beforeend','<div style="position:fixed;inset:0;background:#1F3864;color:#fff;display:flex;align-items:center;justify-content:center;font-family:Calibri"><div><h2 style="color:#C77F1A">Database non raggiungibile</h2><p>'+e.message+'</p></div></div>'); return; }
+ catch(e){ document.body.insertAdjacentHTML('beforeend','<div style="position:fixed;inset:0;background:#1F3864;color:#fff;display:flex;align-items:center;justify-content:center;font-family:Calibri"><div><h2 style="color:#C77F1A">Dati non disponibili</h2><p>'+e.message+'</p></div></div>'); return; }
  window.apri=apri; window.chiudi=chiudi; window.kk=kk;  // esposte PRIMA del render: un errore di disegno non blocca mai la chiusura
 
 
