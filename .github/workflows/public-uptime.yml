@@ -1,0 +1,61 @@
+name: public-uptime
+
+on:
+  pull_request:
+  schedule:
+    - cron: "17 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: public-uptime
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check public page and Supabase payload
+        env:
+          PUBLIC_URL: https://ilepetrov.github.io/optima-insight-demo/
+          EXPECTED_API: https://uabfeprwlyqossbtcfcl.supabase.co/rest/v1
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error --location \
+            --retry 2 --retry-all-errors --max-time 20 \
+            "$PUBLIC_URL" > /tmp/solar-oak.html
+
+          grep -Fq 'Solar Oak Insight' /tmp/solar-oak.html
+          grep -Fq 'PR Guardian</title>' /tmp/solar-oak.html
+
+          python - <<'PY'
+          import json
+          import os
+          import re
+          import urllib.request
+
+          html = open("/tmp/solar-oak.html", encoding="utf-8").read()
+          match = re.search(r'const SB="([^"]+)", APIKEY="(sb_publishable_[^"]+)"', html)
+          assert match, "Configurazione pubblica Supabase non trovata"
+
+          api, key = match.groups()
+          assert api == os.environ["EXPECTED_API"], "Endpoint Supabase inatteso"
+
+          request = urllib.request.Request(
+              f"{api}/rpc/pub_dashboard",
+              data=b"{}",
+              headers={"apikey": key, "Content-Type": "application/json"},
+              method="POST",
+          )
+          with urllib.request.urlopen(request, timeout=20) as response:
+              payload = json.load(response)
+
+          assert payload.get("giorni"), "Nessun giorno nel payload pubblico"
+          assert payload.get("mesi"), "Nessun mese nel payload pubblico"
+          assert len(payload.get("valore", [])) == 1, "Sintesi valore non valida"
+          print("Solar Oak public chain: OK")
+          PY
