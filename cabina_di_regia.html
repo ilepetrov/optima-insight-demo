@@ -187,6 +187,7 @@ const CORSA = TR.corsa_mm || 140, LAVORO_MM = 60, DISPONIBILE = CORSA - LAVORO_M
 let token=null, profilo=null, siti=[], sito=null, quadro='campo';
 let mappa=[], polso={}, rover=[], decisioni=[], schedaSito={}, origine=[];
 let refresh=null, scadenza=0;
+let caricaCorrente=0;
 let k=0, va=false, ultimo=0, filaDi={}, velocita=8;
 const cache={};                       // ogni quadro carica le sue viste una volta
 
@@ -301,6 +302,7 @@ async function riprendiSessione(){
 
 async function esci(){
   const accesso = token;
+  caricaCorrente++;
   dimenticaSessione(); $('#ricorda').checked=false;
   token=refresh=null; scadenza=0; profilo=null; siti=[]; sito=null;
   mappa=[]; polso={}; rover=[]; decisioni=[]; schedaSito={}; origine=[]; vivi=[];
@@ -412,7 +414,7 @@ async function rinnovaSessione(){
   }catch(e){ return false; }
 }
 /* le viste che hanno site_id si filtrano; le altre no */
-const perSito = (v,q='') => get(v,'&site_id=eq.'+encodeURIComponent(sito)+q);
+const perSito = (v,q='',site=sito) => get(v,'&site_id=eq.'+encodeURIComponent(site)+q);
 async function rpc(n,a){ const r=await fetch(URL_BASE+'/rest/v1/rpc/'+n,{method:'POST',
   headers:{'apikey':CHIAVE,'Authorization':'Bearer '+token,'Content-Type':'application/json'},
   body:JSON.stringify(a)}); return r.json(); }
@@ -504,18 +506,21 @@ function riassumiMappa(righe){
 }
 
 async function carica(silenzioso=false){
+  const richiesta=++caricaCorrente, sitoRichiesto=sito;
   /* La scheda e l'origine cambiano solo al primo caricamento/cambio sito.
      Il polso, invece, e' lo stesso riepilogo della mappa gia' scaricata.
      Al primo giro scheda e mappa si leggono in sequenza: insieme saturavano
      il database gratuito e una delle due scadeva prima di rispondere. */
   let sc=[schedaSito], og=origine;
   if(!silenzioso) [sc,og] = await Promise.all([
-    perSito('v_i_miei_siti'), perSito('v_origine_dati')]);
+    perSito('v_i_miei_siti','',sitoRichiesto),
+    perSito('v_origine_dati','',sitoRichiesto)]);
   const [m,r,d,bt,sa] = await Promise.all([
-    perSito('v_mappa_impianto','&order=y0'),
-    perSito('v_robot_stato','&order=robot_id'),
-    perSito('v_registro_decisioni','&order=ts.desc&limit=8'),
+    perSito('v_mappa_impianto','&order=y0',sitoRichiesto),
+    perSito('v_robot_stato','&order=robot_id',sitoRichiesto),
+    perSito('v_registro_decisioni','&order=ts.desc&limit=8',sitoRichiesto),
     get('v_battito_piattaforma'), get('v_salute_piattaforma')]);
+  if(richiesta!==caricaCorrente || sito!==sitoRichiesto) return;
   mappa = m.map(f=>({...f, y0:N(f.y0), lunghezza_m:N(f.lunghezza_m), m2:N(f.m2),
                      difetti_aperti:N(f.difetti_aperti)||0}));
   polso=riassumiMappa(mappa); rover=r; decisioni=d; schedaSito=sc[0]||{}; origine=og||[]; lavoriAuto=bt||[]; salute=(sa||[])[0]||{};
@@ -525,8 +530,8 @@ async function carica(silenzioso=false){
   [...new Set(TR.fila.filter(Boolean))].forEach((f,i)=>{ if(dove[i]) filaDi[f]=dove[i].filare_id; });
 
   disegnaSalute(); disegnaBanco(); disegnaPolso(); disegnaAvviso(); disegnaNav();
-  await disegnaQuadro(silenzioso);
-  aggiornaBadge();
+  await disegnaQuadro(silenzioso, richiesta);
+  aggiornaBadge(sitoRichiesto, richiesta);
 }
 
 function disegnaPolso(){
@@ -594,7 +599,8 @@ async function battito(){
      vorrebbe dire mostrare almeno un giro di dati vuoti. */
   if(scadenza && Date.now() > scadenza - 300000) await rinnovaSessione();
   try{
-    const r = await perSito('v_robot_vivo');
+    const sitoRichiesto=sito, r = await perSito('v_robot_vivo','',sitoRichiesto);
+    if(sito!==sitoRichiesto) return;
     vivi = r||[]; ultimoBattito = Date.now();
     disegnaDiretta();
     if(quadro==='campo') muoviRobotVivi();
@@ -782,11 +788,12 @@ function disegnaAvviso(){
     + (!mappa.length ? ' — <b>senza la geometria non c\'è mappa</b>: quello che vedi sono i dati che ci sono davvero.' : ''));
 }
 
-async function aggiornaBadge(){
+async function aggiornaBadge(sitoRichiesto=sito, richiesta=caricaCorrente){
   const [inc, dif, tel] = await Promise.all([
-    perSito('v_incident_open','&select=incident_id,level'),
-    perSito('v_file_da_ispezionare','&select=filare_id'),
-    perSito('v_telecamere','&select=clip_id&limit=200')]);
+    perSito('v_incident_open','&select=incident_id,level',sitoRichiesto),
+    perSito('v_file_da_ispezionare','&select=filare_id',sitoRichiesto),
+    perSito('v_telecamere','&select=clip_id&limit=200',sitoRichiesto)]);
+  if(richiesta!==caricaCorrente || sito!==sitoRichiesto) return;
   badge('allarmi', inc.length, inc.some(x=>x.level==='L3')?'male':inc.length?'attenzione':null);
   badge('campo', dif.length, dif.length?'male':null);
   badge('camere', tel.length);
@@ -795,7 +802,8 @@ async function aggiornaBadge(){
 /* ══ il router dei quadri ══════════════════════════════════ */
 let improntaQuadro='', ultimoRitocco=0;
 
-async function disegnaQuadro(silenzioso=false){
+async function disegnaQuadro(silenzioso=false, richiesta=caricaCorrente){
+  if(richiesta!==caricaCorrente) return;
   const q=$('#quadro');
   if(!silenzioso) q.innerHTML = '<div class="vuoto">…</div>';
   try{
@@ -805,6 +813,7 @@ async function disegnaQuadro(silenzioso=false){
       missioni:qMissioni, allarmi:qAllarmi, garanzia:qGaranzia,
       cervello:qCervello, qualita:qQualita
     }[quadro] || (()=> '<div class="vuoto">quadro sconosciuto</div>'))();
+    if(richiesta!==caricaCorrente) return;
 
     /* ⭐ DIRETTA PROFONDA: si ridisegna SOLO se qualcosa e' cambiato.
        Ridisegnare ogni cinque secondi comunque farebbe saltare la pagina e
@@ -820,6 +829,7 @@ async function disegnaQuadro(silenzioso=false){
     if(silenzioso){ window.scrollTo(0, scorrimento); accendiNuove(q, prima); }
     segnaRespiro();
   }catch(e){
+    if(richiesta!==caricaCorrente) return;
     q.innerHTML = `<div class="card"><div class="vuoto">Non sono riuscito a
       disegnare questo quadro: <b>${esc(e.message)}</b>.<br>
       È un difetto mio, non un dato mancante — va segnalato.</div></div>`;
