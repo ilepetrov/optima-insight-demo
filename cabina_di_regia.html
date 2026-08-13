@@ -187,7 +187,7 @@ const CORSA = TR.corsa_mm || 140, LAVORO_MM = 60, DISPONIBILE = CORSA - LAVORO_M
 let token=null, profilo=null, siti=[], sito=null, quadro='campo';
 let mappa=[], polso={}, rover=[], decisioni=[], schedaSito={}, origine=[];
 let refresh=null, scadenza=0;
-let caricaCorrente=0;
+let caricaCorrente=0, caricheVisibili=0;
 let k=0, va=false, ultimo=0, filaDi={}, velocita=8;
 const cache={};                       // ogni quadro carica le sue viste una volta
 
@@ -506,6 +506,15 @@ function riassumiMappa(righe){
 }
 
 async function carica(silenzioso=false){
+  /* Il respiro non deve mai scavalcare un cambio sito o un refresh visibile.
+     Se era già partito prima, il numero richiesta più nuovo lo rende innocuo. */
+  if(silenzioso && caricheVisibili) return;
+  if(!silenzioso) caricheVisibili++;
+  try{ return await caricaDati(silenzioso); }
+  finally{ if(!silenzioso) caricheVisibili--; }
+}
+
+async function caricaDati(silenzioso=false){
   const richiesta=++caricaCorrente, sitoRichiesto=sito;
   /* La scheda e l'origine cambiano solo al primo caricamento/cambio sito.
      Il polso, invece, e' lo stesso riepilogo della mappa gia' scaricata.
