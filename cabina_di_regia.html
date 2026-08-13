@@ -809,10 +809,11 @@ async function aggiornaBadge(sitoRichiesto=sito, richiesta=caricaCorrente){
 }
 
 /* ══ il router dei quadri ══════════════════════════════════ */
-let improntaQuadro='', ultimoRitocco=0;
+let improntaQuadro='', ultimoRitocco=0, disegnoCorrente=0;
 
 async function disegnaQuadro(silenzioso=false, richiesta=caricaCorrente){
   if(richiesta!==caricaCorrente) return;
+  const disegno=++disegnoCorrente, quadroRichiesto=quadro;
   const q=$('#quadro');
   if(!silenzioso) q.innerHTML = '<div class="vuoto">…</div>';
   try{
@@ -821,8 +822,8 @@ async function disegnaQuadro(silenzioso=false, richiesta=caricaCorrente){
       energia:qEnergia, sporco:qSporco, moduli:qModuli, meteo:qMeteo,
       missioni:qMissioni, allarmi:qAllarmi, garanzia:qGaranzia,
       cervello:qCervello, qualita:qQualita
-    }[quadro] || (()=> '<div class="vuoto">quadro sconosciuto</div>'))();
-    if(richiesta!==caricaCorrente) return;
+    }[quadroRichiesto] || (()=> '<div class="vuoto">quadro sconosciuto</div>'))();
+    if(disegno!==disegnoCorrente || richiesta!==caricaCorrente || quadro!==quadroRichiesto) return;
 
     /* ⭐ DIRETTA PROFONDA: si ridisegna SOLO se qualcosa e' cambiato.
        Ridisegnare ogni cinque secondi comunque farebbe saltare la pagina e
@@ -834,11 +835,11 @@ async function disegnaQuadro(silenzioso=false, richiesta=caricaCorrente){
     const prima = silenzioso ? chiaviVisibili(q) : new Set();
     improntaQuadro = impronta;
     q.innerHTML = html;
-    if(quadro==='campo'){ disegnaCampo(); mostra(k); if(vivi.length) muoviRobotVivi(); }
+    if(quadroRichiesto==='campo'){ disegnaCampo(); mostra(k); if(vivi.length) muoviRobotVivi(); }
     if(silenzioso){ window.scrollTo(0, scorrimento); accendiNuove(q, prima); }
     segnaRespiro();
   }catch(e){
-    if(richiesta!==caricaCorrente) return;
+    if(disegno!==disegnoCorrente || richiesta!==caricaCorrente || quadro!==quadroRichiesto) return;
     q.innerHTML = `<div class="card"><div class="vuoto">Non sono riuscito a
       disegnare questo quadro: <b>${esc(e.message)}</b>.<br>
       È un difetto mio, non un dato mancante — va segnalato.</div></div>`;
