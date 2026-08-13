@@ -316,7 +316,14 @@ async function get(v,q=''){
     return [];
   }
   if(!r.ok){ segnalaGuasto(v, 'il database ha risposto '+r.status); return []; }
-  try{ return await r.json(); }
+  try{
+    const dati = await r.json();
+    if(guastiRete.some(g=>g.vista===v)){
+      guastiRete = guastiRete.filter(g=>g.vista!==v);
+      disegnaGuasti();
+    }
+    return dati;
+  }
   catch(e){ segnalaGuasto(v, 'risposta illeggibile'); return []; }
 }
 
