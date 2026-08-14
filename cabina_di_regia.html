@@ -498,6 +498,7 @@ function riassumiMappa(righe){
     filari_mai_fatti:conta('mai pulito'),
     filari_con_difetti:righe.filter(x=>N(x.difetti_aperti)>0).length,
     difetti_aperti:righe.reduce((n,x)=>n+(N(x.difetti_aperti)||0),0),
+    moduli_da_pulire:righe.reduce((n,x)=>n+(N(x.moduli_da_pulire)||0),0),
     filari_stanotte:righe.filter(x=>x.nel_piano_stanotte).length,
     giorni_medi_da_pulizia:giorni.length
       ? Math.round(giorni.reduce((n,x)=>n+x,0)/giorni.length*10)/10 : null,
@@ -531,7 +532,8 @@ async function caricaDati(silenzioso=false){
     get('v_battito_piattaforma'), get('v_salute_piattaforma')]);
   if(richiesta!==caricaCorrente || sito!==sitoRichiesto) return;
   mappa = m.map(f=>({...f, y0:N(f.y0), lunghezza_m:N(f.lunghezza_m), m2:N(f.m2),
-                     difetti_aperti:N(f.difetti_aperti)||0}));
+                     difetti_aperti:N(f.difetti_aperti)||0,
+                     moduli_da_pulire:N(f.moduli_da_pulire)||0}));
   polso=riassumiMappa(mappa); rover=r; decisioni=d; schedaSito=sc[0]||{}; origine=og||[]; lavoriAuto=bt||[]; salute=(sa||[])[0]||{};
   const bersagli = mappa.filter(f=>f.nel_piano_stanotte);
   const dove = (bersagli.length?bersagli:mappa);
@@ -553,12 +555,13 @@ function disegnaPolso(){
       <div class="p"><b style="color:var(--warn)">${num(s.cosa_manca?s.cosa_manca.length:0)}</b><span>dati mancanti</span></div>`);
     return;
   }
+  const difetti=N(s.difetti_aperti)||0;
   scriviSeCambia($('#polso'), `
     <div class="p"><b>${num(p.filari)}</b><span>filari</span></div>
     <div class="p"><b>${num(p.m2_totali)}</b><span>m² vetro</span></div>
     <div class="p"><b style="color:var(--oak)">${num(p.filari_puliti)}</b><span>puliti</span></div>
     <div class="p"><b style="color:${N(p.filari_da_fare)>0?'var(--warn)':'var(--testo)'}">${num(p.filari_da_fare)}</b><span>da fare</span></div>
-    <div class="p"><b style="color:${N(p.difetti_aperti)>0?'var(--bad)':'var(--testo)'}">${num(p.difetti_aperti)}</b><span>difetti</span></div>
+    <div class="p"><b style="color:${difetti>0?'var(--bad)':'var(--testo)'}">${num(difetti)}</b><span>difetti aperti</span></div>
     <div class="p"><b>${num(p.giorni_medi_da_pulizia,1)}</b><span>gg medi</span></div>`);
 }
 
@@ -1851,7 +1854,8 @@ function disegnaCampo(){
       width="${larg}" height="${py(lung)-py(0)}" rx="1.5" fill="${col}" opacity=".85">
       <title>${r.filare_id} · ${r.stato} · ${r.m2} m²${r.giorni_da_pulizia!=null?
         ' · pulito '+r.giorni_da_pulizia+' gg fa':''}${r.difetti_aperti?
-        ' · '+r.difetti_aperti+' difetti':''}</title></rect>`);
+        ' · '+r.difetti_aperti+' moduli con difetti':''}${r.moduli_da_pulire?
+        ' · '+r.moduli_da_pulire+' moduli da pulire':''}</title></rect>`);
     if(r.difetti_aperti>0) f.push(`<circle cx="${px(r.y0)}" cy="${py(0)-6}" r="2.4" fill="#d9534f"/>`);
   });
   f.push(`<circle cx="${MX-14}" cy="${py(lung)+4}" r="5" fill="none" stroke="#4ea87b" stroke-width="1.5"/>
@@ -1866,7 +1870,7 @@ function disegnaCampo(){
   if($('#legenda')) $('#legenda').innerHTML = Object.keys(COLORI).filter(s=>c[s])
     .map(s=>`<div class="leg"><span class="q" style="background:${COLORI[s].c}"></span>
       ${COLORI[s].n} <b style="color:var(--testo)">${c[s]}</b></div>`).join('')
-    + `<div class="leg" style="margin-left:auto">tratteggio = il giro di stanotte · pallino rosso = difetto</div>`;
+    + `<div class="leg" style="margin-left:auto">tratteggio = il giro di stanotte · pallino rosso = modulo con difetto</div>`;
   if($('#vel')) disegnaVel();
   if($('#via')) $('#via').textContent = va?'⏸ Pausa':(k>=TR.n-1?'↻ Da capo':'▶ Riproduci');
   if($('#via')) $('#via').onclick=()=>{ if(k>=TR.n-1){k=0;scia.length=0;disegnaCampo();} va=!va;
