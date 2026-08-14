@@ -937,8 +937,9 @@ async function qCampo(){
           <span class="ora" id="quanto"></span>
           <span id="vel"></span>
         </div>
-        <div class="nota">Notte registrata col cervello vero — «${esc(TR.nome)}».
-          ${esc(TR.spiega||'')}</div>
+        <div class="nota"><b>Simulazione registrata — non è telemetria in diretta.</b>
+          Usa il codice del controllore collegato al modello software FerroFinto.
+          «${esc(TR.nome)}». ${esc(TR.spiega||'')}</div>
       </div>
       ${ispez.length?`<div class="card" style="margin-top:12px">
         <h2 style="color:var(--bad)">🔴 File in cui il robot ha superato il fermo meccanico</h2>
@@ -953,14 +954,16 @@ async function qCampo(){
           di queste file vanno guardati prima della prossima notte.</div></div>`:''}
     </div>
     <div>
-      <div class="card"><h2>La flotta, adesso</h2><div id="flotta"></div></div>
+      <div class="card"><h2>Riproduzione simulata</h2><div id="flottaReplay"></div></div>
+      <div class="card" style="margin-top:12px">
+        <h2>Flotta reale · ultimo dato ricevuto</h2><div id="flottaReale"></div></div>
       <div class="card" style="margin-top:12px">
         <h2>Cosa sta decidendo</h2><div id="decisioni"></div>
         <div class="nota">Ogni decisione porta cosa ha <b>scartato e perché</b>.
           Il giudizio va nel database: è così che impara una cosa che dai dati
           non può dedurre.</div></div>
       <div class="card" style="margin-top:12px">
-        <h2>Cosa è successo stanotte</h2><div id="eventi"></div></div>
+        <h2>Eventi della simulazione</h2><div id="eventi"></div></div>
     </div>
   </div>`;
 }
@@ -973,14 +976,14 @@ async function qFlotta(){
     perSito('v_comandi_recenti','&order=ts.desc&limit=15'),
     perSito('v_identita_robot','&order=robot_id')]);
   const vivi = rb.filter(x=>x.da_quanto_muto_min!=null);
-  const pronti = id.filter(x=>x.ha_il_segreto);
+  const collegate = id.filter(x=>/identità collegata/.test(x.stato||''));
   return `
   <div class="griglia due">
     <div class="card largo">
       <h2>Chi può parlare con la piattaforma</h2>
       <div class="kpi">
-        <div><b>${id.length}</b><span>identità create</span></div>
-        <div><b style="color:${pronti.length?'var(--oak)':'var(--warn)'}">${pronti.length}</b><span>con la password</span></div>
+        <div><b>${id.length}</b><span>robot in anagrafica</span></div>
+        <div><b style="color:${collegate.length?'var(--oak)':'var(--warn)'}">${collegate.length}</b><span>identità collegate</span></div>
         <div><b style="color:${vivi.length?'var(--oak)':'var(--bad)'}">${vivi.length}</b><span>che hanno parlato</span></div>
       </div>
       ${tabella(id,[
@@ -991,11 +994,9 @@ async function qFlotta(){
         {t:'ultima telemetria',v:r=>r.ultima_telemetria?dataora(r.ultima_telemetria):'mai'},
         {t:'rapporti',n:1,v:r=>num(r.rapporti_mandati)}],
         'Nessun robot in anagrafica per questo impianto.')}
-      ${pronti.length===0?`<div class="nota">⏳ <b>Le identità ci sono tutte, manca la password.</b>
-        È voluto: il segreto non passa da una chat né da un file di progetto — lo mette
-        una persona dalla console Supabase. Finché manca, nessuno può ottenere un token:
-        è il fail-closed applicato alle credenziali. Procedura in
-        <code>06_sw_test/ponte/COME_CREARE_IDENTITA_ROBOT.md</code>.</div>`:''}
+      ${collegate.length<id.length?`<div class="nota">⚠️ Alcuni robot non hanno
+        un'identità collegata. La password non viene verificata né esposta qui:
+        i controlli corretti sono l'accesso riuscito e la telemetria ricevuta.</div>`:''}
     </div>
 
     <div class="card largo">
@@ -1011,10 +1012,10 @@ async function qFlotta(){
         {t:'m² missione',n:1,v:r=>num(r.m2_nella_missione)},
         {t:'ultima notte',v:r=>esc(r.esito_ultima_notte||'nessun rapporto')},
         {t:'file',n:1,v:r=>r.file_assegnate?`${num(r.file_fatte)}/${num(r.file_assegnate)}`:'—'}])}
-      ${!vivi.length?`<div class="nota">⚠️ <b>Nessun robot ha mai mandato telemetria.</b>
-        Non è un guasto: i robot non hanno ancora un'identità Supabase, quindi il ponte
-        rifiuta i loro messaggi. Finché non ce l'hanno, le colonne «modo», «filare» e
-        «acqua» restano vuote e la cabina replica una notte registrata.</div>`:''}
+      ${!vivi.length?`<div class="nota">⚠️ <b>Nessun robot sta inviando telemetria.</b>
+        L'identità permette l'accesso, ma la cabina diventa operativa in diretta solo
+        quando il ponte o il robot invia heartbeat, posizione e stato. La simulazione
+        resta separata nel quadro «Campo e robot».</div>`:''}
     </div>
 
     <div class="card">
@@ -1169,6 +1170,16 @@ async function apriFrame(id, percorso){
 
 /* ═══ QUADRO · ENERGIA ═════════════════════════════════════ */
 async function qEnergia(){
+  if(N(schedaSito.letture_produzione)===0) return `
+  <div class="griglia due">
+    <div class="card largo"><h2>Produzione</h2>
+      ${manca('la produzione misurata',
+        'Servono le letture del contatore o del portale del gestore. Senza, il cervello non può dire quanto vale una pulizia.')}</div>
+    <div class="card"><h2>Resa</h2>
+      ${manca('la resa','Serve produzione e meteo dello stesso giorno.')}</div>
+    <div class="card"><h2>Dove finisce l\'energia</h2>
+      ${manca('la scomposizione delle perdite','Serve la produzione a quarto d\'ora.')}</div>
+  </div>`;
   const [prod, resa, dove, sopp] = await Promise.all([
     perSito('v_produzione_giornaliera','&order=giorno.desc&limit=60'),
     perSito('v_resa_giornaliera','&order=giorno.desc&limit=60'),
@@ -1570,6 +1581,11 @@ async function qAllarmi(){
 
 /* ═══ QUADRO · GARANZIA ════════════════════════════════════ */
 async function qGaranzia(){
+  if(((origine[0]||{}).modo||schedaSito.modo)==='banco') return `
+  <div class="card"><h2>Garanzia non calcolata</h2>
+    <div class="vuoto">Questo è un impianto banco. I dati simulati servono al
+      collaudo e non alimentano garanzie o fatture: nessun valore economico
+      viene mostrato.</div></div>`;
   const [mese, stor, rap] = await Promise.all([
     perSito('v_garanzia_mese_corrente'),
     perSito('v_garanzia_storico','&order=mese.desc&limit=18'),
@@ -1844,7 +1860,7 @@ function disegnaCampo(){
     <text x="${MX-26}" y="${py(lung/2)+16}" fill="#3f8fd9" font-size="9">acqua</text>`);
   f.push(`<polyline id="scia" fill="none" stroke="#6fd3a0" stroke-width="1" opacity=".35"/>`);
   f.push(`<g id="rc01"><circle r="5" fill="#6fd3a0"/>
-     <text y="-8" fill="#6fd3a0" font-size="9" text-anchor="middle">RC-01</text></g>`);
+     <text y="-8" fill="#6fd3a0" font-size="9" text-anchor="middle">RC-01 · replay</text></g>`);
   const svg=$('#campoSvg'); svg.setAttribute('viewBox',`0 0 ${W} ${H}`); svg.innerHTML=f.join('');
   const c={}; mappa.forEach(r=>c[r.stato]=(c[r.stato]||0)+1);
   if($('#legenda')) $('#legenda').innerHTML = Object.keys(COLORI).filter(s=>c[s])
@@ -1930,6 +1946,7 @@ function disegnaFianco(i){
 
 function mostra(i){
   if(quadro!=='campo' || !PX || !$('#campoSvg')) return;
+  i = Math.max(0, Math.min(TR.n-1, Math.floor(Number(i)||0)));
   const x=TR.x[i], fila=TR.fila[i], modo=TR.modo[i];
   const r = fila ? mappa.find(m=>m.filare_id===(filaDi[fila]||fila)) : null;
   const cy=PX.py(Math.max(0,Math.min(PX.lung,x)));
@@ -1969,7 +1986,8 @@ function disegnaDice(i){
 }
 
 function disegnaFlotta(i){
-  if(!$('#flotta')) return;
+  const replay=$('#flottaReplay'), reale=$('#flottaReale');
+  if(!replay || !reale) return;
   const batt=TR.batt[i], acqua=TR.acqua[i], forza=TR.forza[i];
   const modo=TR.modo[i], fila=TR.fila[i], m2=TR.m2[i];
   const canc=TR.cancello[i], perche=TR.perche[i];
@@ -1995,23 +2013,25 @@ function disegnaFlotta(i){
     <div class="nota">massa a vuoto ${num(M_VUOTO)} kg · limite RF-04 ${num(M_LIMITE)} kg ·
       carico utile ${num(PAYLOAD)} kg. A serbatoio pieno si sta all'88%:
       <b>l'acqua è quasi tutto il carico utile</b>.</div></div>`;
+  replay.innerHTML=h;
+  let live='';
   rover.forEach(x=>{
     const vivo = x.da_quanto_muto_min!=null && N(x.da_quanto_muto_min) < 15;
     if(vivo){
       const acq=N(x.acqua_a_bordo_l)||0, m=M_VUOTO+acq;
-      h+=`<div class="rover attivo"><div class="rtesta"><b>${esc(x.robot_id)}</b>
+      live+=`<div class="rover attivo"><div class="rtesta"><b>${esc(x.robot_id)}</b>
         <span class="pill ok">${esc(x.mode||x.stato)}</span>
         <span style="color:var(--tenue);font-size:11.5px;margin-left:auto">${esc(x.filare_corrente||'—')} · ${num(x.da_quanto_muto_min,0)}′ fa</span></div>
         <div class="carico"><span>acqua</span>${b(acq,400,'var(--acqua)')}<b>${num(acq)} L</b></div>
         <div class="carico"><span>massa</span>${b(m,M_LIMITE,m>M_LIMITE?'var(--bad)':'var(--oak)')}<b>${num(m)} kg</b></div>
         <div class="carico"><span>fatti</span>${b(N(x.m2_nella_missione)||0,1500,'var(--oak)')}<b>${num(x.m2_nella_missione)} m²</b></div></div>`;
     } else {
-      h+=`<div class="rover"><div class="rtesta"><b>${esc(x.robot_id)}</b>
+      live+=`<div class="rover"><div class="rtesta"><b>${esc(x.robot_id)}</b>
         <span class="pill ${/ARRESTO|muto|mai sentito/.test(x.stato||'')?'male':''}">${esc(x.stato)}</span></div>
         <div style="font-size:11.5px;color:var(--tenue)">${esc(x.esito_ultima_notte||'nessun rapporto')}</div></div>`;
     }
   });
-  $('#flotta').innerHTML=h;
+  reale.innerHTML=live||'<div class="vuoto">Nessun robot in anagrafica per questo impianto.</div>';
 }
 
 function disegnaDecisioni(){
