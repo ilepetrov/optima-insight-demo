@@ -657,13 +657,20 @@ function disegnaDiretta(){
       + ` <span style="color:var(--ink-2)">— quando un robot inizia a battere, compare qui</span>`;
     return;
   }
-  const muti = vivi.filter(x=>N(x.muto_da_s)>60).length;
-  const rosso = muti>0 || vivi.some(x=>x.allarme);
-  const punto = rosso
-    ? `<span style="color:#e07a6a">●</span>`
-    : `<span style="color:#5ad07a;animation:pulsa 1.4s infinite">●</span>`;
-  const corpo = punto + ` <b style="color:${rosso?'#e07a6a':'#5ad07a'}">`
-    + (rosso?'ATTENZIONE':'IN DIRETTA') + `</b> `
+  const reali = vivi.filter(x=>x.origine==='reale');
+  const simulati = vivi.filter(x=>x.origine==='simulato');
+  const origineIgnota = vivi.filter(x=>!['reale','simulato'].includes(x.origine));
+  const monitorati = [...reali, ...origineIgnota];
+  const muti = monitorati.filter(x=>N(x.muto_da_s)>60).length;
+  const rosso = muti>0 || monitorati.some(x=>x.allarme);
+  const soloSimulati = !reali.length && simulati.length>0 && !origineIgnota.length;
+  const giallo = soloSimulati || !reali.length;
+  const colore = giallo ? '#e8b95a' : rosso ? '#e07a6a' : '#5ad07a';
+  const titolo = soloSimulati ? 'BANCO SIMULATO'
+    : !reali.length ? 'ORIGINE NON VERIFICATA'
+    : rosso ? 'ATTENZIONE' : 'IN DIRETTA';
+  const punto = `<span style="color:${colore}${!giallo&&!rosso?';animation:pulsa 1.4s infinite':''}">●</span>`;
+  const corpo = punto + ` <b style="color:${colore}">${titolo}</b> `
     /* ⭐ i secondi stanno in un loro span: si aggiornano da soli, e la
        barra attorno non viene ricostruita */
     + `<span style="color:var(--ink-2)">· battito <span id="etaBattito">`
@@ -672,8 +679,14 @@ function disegnaDiretta(){
     + `<div style="display:flex;gap:18px;flex-wrap:wrap;margin-top:6px">`
     + vivi.map(x=>{
         const m=N(x.muto_da_s);
+        const org=String(x.origine||'').toLowerCase();
+        const etichetta=org==='reale'
+          ? '<span class="pill ok">REALE</span>'
+          : org==='simulato'
+            ? '<span class="pill attenzione">SIMULATO</span>'
+            : '<span class="pill male">ORIGINE NON DICHIARATA</span>';
         return `<div style="min-width:230px">
-          <b>${esc(x.robot_id)}</b> ${esc(x.semaforo||'')}
+          <b>${esc(x.robot_id)}</b> ${etichetta} ${esc(x.semaforo||'')}
           ${x.filare_id?` · fila <b>${esc(x.filare_id)}</b>`:''}
           ${x.avanz_pct!=null?` ${num(x.avanz_pct,0)}%`:''}
           <div style="color:var(--ink-2);font-size:11.5px">
@@ -700,8 +713,8 @@ function disegnaDiretta(){
         («silenzio da 23 s»), e quello DEVE restare vero. Allora entra
         nell'impronta e la barra si rifa' ogni secondo: in stato d'allarme
         un po' di movimento e' giusto che attiri l'occhio. Da fermi, no. */
-  const impronta = JSON.stringify([rosso, vivi.map(x=>[
-      x.robot_id, x.stato||'', x.filare_id||'',
+  const impronta = JSON.stringify([rosso, giallo, vivi.map(x=>[
+      x.robot_id, x.origine||'', x.stato||'', x.filare_id||'',
       N(x.muto_da_s)>15 ? (x.semaforo||'') : '',
       x.avanz_pct==null?null:Math.round(x.avanz_pct),
       x.batteria_pct==null?null:Math.round(x.batteria_pct),
@@ -714,7 +727,8 @@ function disegnaDiretta(){
   improntaDiretta = impronta;
   b.style.cssText='display:block;border-radius:6px;padding:9px 13px;margin:0 0 10px;'
     +'font-size:12.5px;line-height:1.55;border:1px solid '
-    +(rosso?'#7a2a22':'#2a5a3a')+';background:'+(rosso?'#3a1614':'#12281c');
+    +(giallo?'#7a5a22':rosso?'#7a2a22':'#2a5a3a')+';background:'
+    +(giallo?'#3a2a12':rosso?'#3a1614':'#12281c');
   b.innerHTML = corpo;
 }
 
@@ -730,7 +744,7 @@ function muoviRobotVivi(){
       g.innerHTML = `<circle r="7" fill="#5ad07a" opacity=".25"><animate attributeName="r"
           values="7;14;7" dur="1.6s" repeatCount="indefinite"/></circle>
         <circle r="4" fill="#5ad07a"/>
-        <text y="-11" text-anchor="middle" font-size="9" fill="#5ad07a">${esc(r.robot_id)}</text>`;
+        <text y="-11" text-anchor="middle" font-size="9" fill="#5ad07a"></text>`;
       svg.appendChild(g);
     }
     /* PX viene da disegnaCampo: px(y) è l'asse dei filari, py(x) la
@@ -742,8 +756,12 @@ function muoviRobotVivi(){
     g.setAttribute('transform', `translate(${cx},${cy})`);
     g.style.transition = 'transform .9s linear';
     const vivo = N(r.muto_da_s) < 30;
-    g.querySelectorAll('circle,text').forEach(e=>
-      e.setAttribute('fill', vivo?'#5ad07a':'#e07a6a'));
+    const org=String(r.origine||'').toLowerCase();
+    const colore=org==='simulato' ? '#e8b95a'
+      : org==='reale' ? (vivo?'#5ad07a':'#e07a6a') : '#e07a6a';
+    g.querySelectorAll('circle,text').forEach(e=>e.setAttribute('fill', colore));
+    g.querySelector('text').textContent = r.robot_id+' · '
+      +(org==='reale'?'REALE':org==='simulato'?'SIMULATO':'ORIGINE ?');
   });
 }
 
@@ -796,7 +814,9 @@ function disegnaAvviso(){
   if(!manca.length){ $('#avviso').style.display='none'; return; }
   $('#avviso').style.display='block';
   scriviSeCambia($('#avviso'), `⚠️ <b>Di ${esc(s.name||sito)} la piattaforma NON sa:</b> `
-    + manca.map(x=>esc(x)).join(' · ')
+    + manca.map(x=>esc(/^la telemetria dei robot/.test(x)
+      ? 'la telemetria reale dei robot (identità collegata non significa telemetria ricevuta)'
+      : x)).join(' · ')
     + (!mappa.length ? ' — <b>senza la geometria non c\'è mappa</b>: quello che vedi sono i dati che ci sono davvero.' : ''));
 }
 
@@ -978,16 +998,19 @@ async function qFlotta(){
     perSito('v_qualita_missione','&order=a.desc&limit=12'),
     perSito('v_comandi_recenti','&order=ts.desc&limit=15'),
     perSito('v_identita_robot','&order=robot_id')]);
-  const vivi = rb.filter(x=>x.da_quanto_muto_min!=null);
-  const collegate = id.filter(x=>/identità collegata/.test(x.stato||''));
+  const simulatore = x=>/^SIM-/.test(x.robot_id||'') || /\(simulato\)/i.test(x.model||'');
+  const viviReali = rb.filter(x=>!simulatore(x) && x.da_quanto_muto_min!=null);
+  const collegate = id.filter(x=>/^🔐\s/.test(x.stato||''));
+  const senzaIdentita = id.filter(x=>!/^🔐\s/.test(x.stato||''));
+  const senzaIdentitaReali = senzaIdentita.filter(x=>!simulatore(x));
   return `
   <div class="griglia due">
     <div class="card largo">
       <h2>Chi può parlare con la piattaforma</h2>
       <div class="kpi">
         <div><b>${id.length}</b><span>robot in anagrafica</span></div>
-        <div><b style="color:${collegate.length?'var(--oak)':'var(--warn)'}">${collegate.length}</b><span>identità collegate</span></div>
-        <div><b style="color:${vivi.length?'var(--oak)':'var(--bad)'}">${vivi.length}</b><span>che hanno parlato</span></div>
+        <div><b style="color:${senzaIdentitaReali.length?'var(--warn)':'var(--oak)'}">${collegate.length}</b><span>identità collegate</span></div>
+        <div><b style="color:${viviReali.length?'var(--oak)':'var(--bad)'}">${viviReali.length}</b><span>robot reali che hanno parlato</span></div>
       </div>
       ${tabella(id,[
         {t:'robot',v:r=>`<b>${esc(r.robot_id)}</b>`},
@@ -997,9 +1020,11 @@ async function qFlotta(){
         {t:'ultima telemetria',v:r=>r.ultima_telemetria?dataora(r.ultima_telemetria):'mai'},
         {t:'rapporti',n:1,v:r=>num(r.rapporti_mandati)}],
         'Nessun robot in anagrafica per questo impianto.')}
-      ${collegate.length<id.length?`<div class="nota">⚠️ Alcuni robot non hanno
+      ${senzaIdentitaReali.length?`<div class="nota">⚠️ ${num(senzaIdentitaReali.length)} robot reali non hanno
         un'identità collegata. La password non viene verificata né esposta qui:
-        i controlli corretti sono l'accesso riuscito e la telemetria ricevuta.</div>`:''}
+        i controlli corretti sono l'accesso riuscito e la telemetria ricevuta.</div>`
+        : senzaIdentita.length?`<div class="nota">I ${num(senzaIdentita.length)} robot senza identità
+        sono simulatori SIM-* e non devono autenticarsi finché restano generatori di banco.</div>`:''}
     </div>
 
     <div class="card largo">
@@ -1015,7 +1040,7 @@ async function qFlotta(){
         {t:'m² missione',n:1,v:r=>num(r.m2_nella_missione)},
         {t:'ultima notte',v:r=>esc(r.esito_ultima_notte||'nessun rapporto')},
         {t:'file',n:1,v:r=>r.file_assegnate?`${num(r.file_fatte)}/${num(r.file_assegnate)}`:'—'}])}
-      ${!vivi.length?`<div class="nota">⚠️ <b>Nessun robot sta inviando telemetria.</b>
+      ${!viviReali.length?`<div class="nota">⚠️ <b>Nessun robot reale sta inviando telemetria.</b>
         L'identità permette l'accesso, ma la cabina diventa operativa in diretta solo
         quando il ponte o il robot invia heartbeat, posizione e stato. La simulazione
         resta separata nel quadro «Campo e robot».</div>`:''}
