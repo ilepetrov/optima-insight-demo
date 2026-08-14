@@ -1868,6 +1868,7 @@ function disegnaCampo(){
       ${COLORI[s].n} <b style="color:var(--testo)">${c[s]}</b></div>`).join('')
     + `<div class="leg" style="margin-left:auto">tratteggio = il giro di stanotte · pallino rosso = difetto</div>`;
   if($('#vel')) disegnaVel();
+  if($('#via')) $('#via').textContent = va?'⏸ Pausa':(k>=TR.n-1?'↻ Da capo':'▶ Riproduci');
   if($('#via')) $('#via').onclick=()=>{ if(k>=TR.n-1){k=0;scia.length=0;disegnaCampo();} va=!va;
     $('#via').textContent = va?'⏸ Pausa':'▶ Riproduci'; };
   if($('#barra')) $('#barra').oninput=e=>{ va=false; k=+e.target.value; scia.length=0; mostra(k); };
