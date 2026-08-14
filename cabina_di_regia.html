@@ -1031,7 +1031,7 @@ async function qFlotta(){
         {t:'fuori banda',n:1,v:r=>num(r.forza_fuori_banda_pct,1)+'%'},
         {t:'dev. lat p95',n:1,v:r=>num(r.lat_dev_p95_cm,1)+' cm'}]):
         manca('nessuna missione con telemetria',
-          'La tabella telemetry ha 0 righe: serve l\'identità Supabase dei robot.')}
+          'La tabella telemetry ha 0 righe: nessun ponte robot sta inviando dati.')}
       <div class="nota">Questa è la vista che dice se il robot ha fatto quello che
         dichiara: Hz effettivi contro i 10 di specifica, copertura dei blocchi
         ricevuti su quelli attesi, e la forza vera sul vetro.</div>
