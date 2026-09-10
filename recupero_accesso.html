@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="it">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-UuI79auyqSmGFBcqUGx9ukS4ufLCVvX2bsEHJjD1YNI='; style-src 'sha256-ppwYBOY7ELH/6ZBFx7R4TSZ/5HGM5An+BMQHtikxZ5g='; connect-src https://uabfeprwlyqossbtcfcl.supabase.co; base-uri 'none'; form-action 'none'">
+<title>Solar Oak · Recupera accesso</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#0b0f14;color:#e6edf3;font:16px/1.5 system-ui,sans-serif}
+main{max-width:440px;margin:12vh auto;padding:28px;background:#141a22;border:1px solid #293544;border-radius:14px}
+h1{font-size:24px;margin:0 0 12px}p{color:#b7c3d0}label{display:block;margin-top:16px}
+input,button{width:100%;padding:12px;margin-top:6px;border:1px solid #516075;border-radius:7px;font:inherit}
+input{background:#0b0f14;color:#e6edf3}button{margin-top:22px;background:#6fd3a0;color:#08120c;cursor:pointer;font-weight:650}
+button:disabled{opacity:.6;cursor:wait}a{color:#80bfff}#stato{white-space:pre-line}small{color:#b7c3d0}
+@media(max-width:480px){main{margin:6vh 16px}}
+</style>
+<main>
+<h1>Recupera accesso</h1>
+<p>Cabina di regia · Solar Oak</p>
+<p id="stato" role="status" aria-live="polite">Inserisci l’email del tuo account: riceverai un link per scegliere una nuova password.</p>
+<form id="richiesta">
+<label for="email">Email dell’account</label>
+<input id="email" type="email" autocomplete="username" maxlength="254" required>
+<button id="invia" type="submit">Invia link di recupero</button>
+</form>
+<form id="cambio" hidden>
+<label for="nuova">Nuova password</label>
+<input id="nuova" type="password" autocomplete="new-password" minlength="8" maxlength="128" required>
+<label for="conferma">Ripeti la nuova password</label>
+<input id="conferma" type="password" autocomplete="new-password" minlength="8" maxlength="128" required>
+<small>Usa almeno 8 caratteri. La password viene inviata direttamente a Supabase.</small>
+<button id="salva" type="submit">Salva nuova password</button>
+</form>
+<p><a id="cabina" href="./cabina_di_regia.html">Apri la cabina di regia</a></p>
+</main>
+<script>
+'use strict';
+const API='https://uabfeprwlyqossbtcfcl.supabase.co/auth/v1/user';
+const KEY='sb_publishable_MtUnlI2_LOEL2zJ92ZPtXg_rUPL6EBu';
+const RITORNO='https://ilepetrov.github.io/optima-insight-demo/recupero_accesso.html';
+const stato=document.getElementById('stato'), form=document.getElementById('cambio');
+const nuova=document.getElementById('nuova'), conferma=document.getElementById('conferma');
+const salva=document.getElementById('salva'), cabina=document.getElementById('cabina');
+const richiesta=document.getElementById('richiesta'), email=document.getElementById('email'), invia=document.getElementById('invia');
+let accesso='', verificato=false;
+function pulisci(){accesso='';verificato=false;nuova.value='';conferma.value='';form.hidden=true;}
+richiesta.addEventListener('submit',async e=>{
+  e.preventDefault();
+  if(invia.disabled || !email.checkValidity()) return;
+  invia.disabled=true;
+  stato.textContent='Invio della richiesta in corso…';
+  try{
+    const r=await fetch(API.replace('/user','/recover')+'?redirect_to='+encodeURIComponent(RITORNO),{
+      method:'POST',headers:{apikey:KEY,'Content-Type':'application/json'},
+      body:JSON.stringify({email:email.value.trim()}),cache:'no-store',credentials:'omit',redirect:'error',signal:AbortSignal.timeout(20000)});
+    if(!r.ok) throw new Error(r.status===429 ? 'Troppi tentativi. Attendi qualche minuto prima di riprovare.' : 'Invio non riuscito. Riprova tra poco.');
+    richiesta.hidden=true;
+    stato.textContent='Se l’indirizzo corrisponde a un account, riceverai un’email con il link di recupero. Controlla anche la cartella spam.';
+  }catch(e){
+    stato.textContent=e instanceof TypeError || e.name==='TimeoutError' ? 'Non ho ricevuto conferma. Controlla la posta prima di riprovare.' : e.message;
+  }finally{invia.disabled=false;}
+});
+async function inizializza(){
+  const parametri=new URLSearchParams(location.hash.slice(1));
+  history.replaceState(null,'',location.pathname);
+  if(parametri.has('error') || parametri.has('error_code')){
+    stato.textContent='Il link è scaduto o non è valido. Richiedi una nuova email di recupero.';return;
+  }
+  if(!parametri.has('access_token')) return;
+  if(parametri.get('type')!=='recovery'){
+    stato.textContent='Serve un link di recupero password.';return;
+  }
+  accesso=parametri.get('access_token');
+  richiesta.hidden=true;
+  stato.textContent='Verifica del link in corso…';
+  try{
+    const r=await fetch(API,{headers:{apikey:KEY,Authorization:'Bearer '+accesso},cache:'no-store',credentials:'omit',redirect:'error',signal:AbortSignal.timeout(20000)});
+    if(!r.ok) throw new Error();
+    const utente=await r.json();
+    if(!utente.id || !utente.email) throw new Error();
+    verificato=true;form.hidden=false;
+    stato.textContent='Scegli la nuova password per '+utente.email+'.';
+  }catch{
+    pulisci();richiesta.hidden=false;stato.textContent='Non riesco a verificare il link. Controlla la connessione o richiedi una nuova email di recupero.';
+  }
+}
+form.addEventListener('submit',async e=>{
+  e.preventDefault();
+  if(!verificato || !accesso || salva.disabled) return;
+  if(nuova.value.length<8 || nuova.value.length>128 || nuova.value!==conferma.value){
+    stato.textContent='Le due password devono coincidere e contenere da 8 a 128 caratteri.';return;
+  }
+  salva.disabled=true;
+  stato.textContent='Salvataggio in corso…';
+  try{
+    const r=await fetch(API,{method:'PUT',headers:{apikey:KEY,Authorization:'Bearer '+accesso,'Content-Type':'application/json'},body:JSON.stringify({password:nuova.value}),cache:'no-store',credentials:'omit',redirect:'error',signal:AbortSignal.timeout(20000)});
+    if(!r.ok){
+      if(r.status===401 || r.status===403){pulisci();richiesta.hidden=false;throw new Error('Il link non è più valido. Richiedi una nuova email di recupero.');}
+      throw new Error('Password non aggiornata. Prova una password diversa e più robusta; se il problema continua, richiedi un nuovo link.');
+    }
+    pulisci();cabina.hidden=false;
+    stato.textContent='Password aggiornata. Apri la cabina e accedi con la nuova password.';
+  }catch(e){
+    stato.textContent=e instanceof TypeError || e.name==='TimeoutError' ? 'Non ho ricevuto conferma. Prova ad accedere alla cabina con la nuova password prima di ripetere il recupero.' : e.message;
+    cabina.hidden=false;
+  }finally{nuova.value='';conferma.value='';salva.disabled=false;}
+});
+window.addEventListener('pagehide',pulisci);
+inizializza();
+</script>
+</html>

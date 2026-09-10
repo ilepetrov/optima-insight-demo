@@ -2,7 +2,16 @@
 <html lang="it">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="referrer" content="no-referrer">
 <title>Solar Oak · cabina di regia</title>
+<script>
+// Anche le email inviate dal pannello Supabase arrivano alla pagina corretta.
+{
+  const p = new URLSearchParams(location.hash.slice(1));
+  if(p.get('type') === 'recovery' || p.has('error') || p.has('error_code'))
+    location.replace('./recupero_accesso.html' + location.hash);
+}
+</script>
 <!--
   CABINA DI REGIA — tutto quello su cui il cervello ragiona.
 
@@ -155,6 +164,7 @@ tr.nuova td:first-child{box-shadow:inset 3px 0 0 #5ad07a}
   <input id="pwd" type="password" placeholder="password" autocomplete="current-password">
   <label class="ricorda"><input id="ricorda" type="checkbox"> Ricordami su questo dispositivo (password non salvata)</label>
   <button class="primo" style="width:100%;margin-top:10px" onclick="entra()">Entra</button>
+  <p style="margin-bottom:0;text-align:center"><a href="./recupero_accesso.html">Password dimenticata?</a></p>
 </div>
 
 <div id="app" style="display:none">
