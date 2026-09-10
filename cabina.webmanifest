@@ -1,0 +1,16 @@
+{
+  "id": "./cabina_di_regia.html",
+  "name": "Solar Oak · Cabina di regia",
+  "short_name": "Solar Oak",
+  "description": "La cabina di regia Solar Oak, collegata alla piattaforma online.",
+  "lang": "it",
+  "start_url": "./cabina_di_regia.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0b0f14",
+  "theme_color": "#0b0f14",
+  "icons": [
+    {"src": "./icone/solar-oak-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any"},
+    {"src": "./icone/solar-oak-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable"}
+  ]
+}
