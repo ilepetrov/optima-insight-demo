@@ -9,12 +9,17 @@ assert.equal(new URL(manifest.start_url,base).href,'https://ilepetrov.github.io/
 assert.equal(manifest.id,manifest.start_url);
 assert.ok(new URL('recupero_accesso.html',base).href.startsWith(new URL(manifest.scope,base).href));
 assert.ok(manifest.name);assert.ok(manifest.short_name);
-for(const size of [192,512]){
-  const icon=manifest.icons.find(i=>i.sizes===`${size}x${size}`);assert.ok(icon);
+for(const icon of manifest.icons.filter(i=>i.type==='image/png')){
+  const [width,height]=icon.sizes.split('x').map(Number);
   const png=fs.readFileSync(new URL(icon.src,root));
   assert.equal(png.subarray(0,8).toString('hex'),'89504e470d0a1a0a');
-  assert.equal(png.readUInt32BE(16),size);assert.equal(png.readUInt32BE(20),size);
+  assert.equal(png.readUInt32BE(16),width);assert.equal(png.readUInt32BE(20),height);
+  assert.ok(width>=512 && height>=512);
 }
+const vettore=manifest.icons.find(i=>i.sizes==='any' && i.type==='image/svg+xml');assert.ok(vettore);
+const svg=fs.readFileSync(new URL(vettore.src,root),'utf8');
+assert.match(svg,/<svg\s/);assert.match(svg,/viewBox="0 0 124 124"/);
+assert.equal(manifest.background_color,'#ffffff');
 const elementi={},eventi={},media={matches:false,addEventListener:(_,fn)=>media.change=fn};
 const elemento=id=>elementi[id]??={hidden:false,disabled:false,addEventListener:(tipo,fn)=>elementi[id][tipo]=fn};
 const navigator={onLine:true};
